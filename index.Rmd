@@ -1,0 +1,221 @@
+---
+title: "EFI-NEON Ecological Forecasting Challenge Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    theme: "cosmo"
+runtime: shiny
+---
+```{r setup, include = FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(readr)
+library(arrow)
+library(neon4cast)
+```
+
+Visualize forecast submissions by date
+=======================================================================
+
+Pick Forecast Category {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+#THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
+  Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+  Sys.unsetenv("AWS_ACCESS_KEY_ID")
+  Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
+  Sys.unsetenv("AWS_DEFAULT_REGION")
+  Sys.unsetenv("AWS_S3_ENDPOINT")
+
+  s <- neon4cast::score_schema()
+
+theme_choices <- c("aquatics", 
+                   "beetles", 
+                   "phenology", 
+                   "terrestrial_30min", 
+                   "terrestrial_daily", 
+                   "ticks")
+
+renderUI({
+  selectInput("forecast", "Select forecast theme:", 
+              choices = theme_choices, selected = "phenology")
+})
+
+combined <- reactive({
+  s3 <- arrow::s3_bucket(bucket = "scores",
+                         endpoint_override = "data.ecoforecast.org",
+                         anonymous=TRUE)
+  ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
+  df <- ds %>% filter(theme == input$forecast,
+                      forecast_start_time > lubridate::as_date("2021-02-01")) %>% collect()
+  df
+})
+
+potential_dates <- reactive({
+  df <- combined() %>% 
+    arrange(desc(forecast_start_time))
+  unique(df$forecast_start_time)
+})
+
+renderUI({
+  selectInput("date", "Select forecast start date:", 
+              choices = potential_dates(), selected = potential_dates()[1])
+})
+
+
+file.teams <- reactive({
+  df <-combined() %>% filter(lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date))
+  unique(df$team)
+})
+
+renderUI({
+  selectInput("team", "Select forecast team (multiple selections allowed):", 
+              choices = file.teams(), selected = file.teams()[1], multiple = TRUE)
+})
+
+potential_targets <- reactive({
+  df <- combined() %>% filter(lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date),
+                              team %in% input$team)
+  unique(df$target)
+})
+
+renderUI({
+  selectInput("target", "Select forecast target:", 
+              choices = potential_targets(), selected = potential_targets()[1])
+})
+
+
+team_date_forecast <-reactive({
+  combined() %>% filter(team %in% input$team,
+                        lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date),
+                        target == input$target
+                        )
+})
+```
+
+Forecast Plot 
+-------------------------------------
+
+```{r}
+target.plot <- reactive({
+  
+  team_date_forecast() %>% 
+  ggplot(aes(x = time, y = mean, color = team)) +
+    geom_ribbon(aes(ymin = lower95, ymax = upper95, color = team, fill = team), alpha = 0.3) +
+    geom_line(aes(y = mean, color = team)) +
+    geom_point(aes(y = observed), color = "black") +
+    facet_wrap(~siteID) +
+    labs(x = "time", y = input$target)
+})
+
+renderPlot({
+  
+  target.plot()
+  
+})
+```
+
+Visualize forecast submissions by team
+=======================================================================
+
+Pick Forecast Category {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+#THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
+  Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+  Sys.unsetenv("AWS_ACCESS_KEY_ID")
+  Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
+  Sys.unsetenv("AWS_DEFAULT_REGION")
+  Sys.unsetenv("AWS_S3_ENDPOINT")
+
+  s <- neon4cast::score_schema()
+
+theme_choices <- c("aquatics", 
+                   "beetles", 
+                   "phenology", 
+                   "terrestrial_30min", 
+                   "terrestrial_daily", 
+                   "ticks")
+
+renderUI({
+  selectInput("forecast2", "Select forecast theme:", 
+              choices = theme_choices, selected = "phenology")
+})
+
+combined2 <- reactive({
+  s3 <- arrow::s3_bucket(bucket = "scores",
+                         endpoint_override = "data.ecoforecast.org",
+                         anonymous=TRUE)
+  ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
+  df <- ds %>% filter(theme == input$forecast2,
+                      forecast_start_time > lubridate::as_date("2021-02-01")) %>% collect()
+  df
+})
+
+file.teams2 <- reactive({
+  unique(combined2()$team)
+})
+
+renderUI({
+  selectInput("team2", "Select forecast team:", 
+              choices = file.teams2(), selected = file.teams2()[1])
+})
+
+potential_dates2 <- reactive({
+  df <- combined2() %>% filter(team == input$team2) %>% 
+    arrange(desc(forecast_start_time))
+  unique(df$forecast_start_time)
+})
+
+renderUI({
+  selectInput("date2", "Select forecast start date (multiple selections allowed):", 
+              choices = potential_dates2(), selected = potential_dates2()[1], multiple = TRUE)
+})
+
+potential_targets2 <- reactive({
+  df <- combined2() %>% filter(lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
+                              team == input$team2)
+  unique(df$target)
+})
+
+renderUI({
+  selectInput("target2", "Select forecast target:", 
+              choices = potential_targets2(), selected = potential_targets2()[1])
+})
+
+
+team_date_forecast2 <-reactive({
+  combined2() %>% filter(team == input$team2,
+                        lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
+                        target == input$target2
+                        )
+})
+
+```
+
+Forecast Plot 
+-------------------------------------
+
+```{r}
+target.plot2 <- reactive({
+  
+  team_date_forecast2() %>% 
+    mutate(forecast_start_time = factor(forecast_start_time)) %>% 
+  ggplot(aes(x = time, y = mean, color = forecast_start_time)) +
+    geom_ribbon(aes(ymin = lower95, ymax = upper95, color = forecast_start_time, fill = forecast_start_time), alpha = 0.3) +
+    geom_line(aes(y = mean, color = forecast_start_time)) +
+    geom_point(aes(y = observed), color = "black") +
+    facet_wrap(~siteID) +
+    labs(x = "time", y = input$target2)
+})
+
+renderPlot({
+  
+  target.plot2()
+  
+})
+```

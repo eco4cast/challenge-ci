@@ -1,0 +1,5 @@
+themes: "aquatics","beetles", "phenology", "terrestrial_30min", "terrestrial_daily", "ticks"
+time_unit: "date", "date", "date", "datetime"
+targets: "oxygen", "temperature", "richness", "abundance", "nee","le", "vswc", "gcc_90","rcc_90", "ixodes_scapularis","amblyomma_americanum"
+target_file_name: 
+
