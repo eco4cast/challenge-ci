@@ -42,7 +42,7 @@ services:
     image: eco4cast/shiny
     restart: always
     volumes:
-      - .:/srv/shiny-server
+      - ..:/srv/shiny-server
       - /${S3_BASE}/log/shiny:/var/log/shiny-server
       - /${S3_BASE}:/efi_neon_challenge
 
