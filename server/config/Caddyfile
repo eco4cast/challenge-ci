@@ -1,0 +1,70 @@
+
+data.ecoforecast.org {
+
+    tls cboettig@gmail.com
+    reverse_proxy minio:9000 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up Host {host}
+        health_path /minio/health/ready
+    }
+}
+
+console.ecoforecast.org {
+
+    tls cboettig@gmail.com
+    reverse_proxy minio:9001 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up Host {host}
+        health_path /minio/health/ready
+    }
+}
+
+
+data1.ecoforecast.org {
+
+    tls cboettig@gmail.com
+    reverse_proxy minio:9000 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up Host {host}
+        health_path /minio/health/ready
+    }
+}
+
+
+
+
+
+## Monitoring system for MINIO
+prometheus.ecoforecast.org {
+  tls eco4cast.initiative@gmail.com
+  reverse_proxy prometheus:9090
+}
+
+
+
+status.ecoforecast.org {
+  tls cboettig@gmail.com
+  reverse_proxy monitor:19999 
+
+}
+
+rstudio.ecoforecast.org {
+  tls cboettig@gmail.com
+  reverse_proxy rstudio:8787 {
+    header_up Host {host}
+  }
+}
+
+shiny.ecoforecast.org {
+  tls cboettig@gmail.com
+  reverse_proxy shiny:3838 {
+    header_up Host {host}
+  }
+
+}
+
+
+

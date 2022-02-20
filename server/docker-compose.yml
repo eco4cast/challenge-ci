@@ -1,0 +1,65 @@
+version: '2.3'
+
+services:
+  caddy:
+    image: caddy
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile
+      - ./.caddy/:/data
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+
+  minio: 
+    image: minio/minio
+    command: server /data{1...4}  --console-address ":9001"
+    restart: always
+    volumes:
+      - /${EFI}/disk1:/data1
+      - /${EFI}/disk2:/data2
+      - /${EFI}/disk3:/data3
+      - /${EFI}/disk4:/data4
+    env_file: ./config/minio_env.sh
+
+  rstudio:
+    build: 
+      context: . 
+    image: eco4cast/cron
+    restart: always
+    volumes:
+      - /${EFI}/log/cron:/var/log
+      - /${EFI}:/efi_neon_challenge
+      - ..:/home/rstudio/Documents
+      - /opt/local/renv/cache:/renv/cache
+      - ./config/Renviron:/home/rstudio/.Renviron
+    env_file: ./config/rstudio_env.sh
+
+  shiny:
+    build:
+      context: shiny
+    image: eco4cast/shiny
+    restart: always
+    volumes:
+      - .:/srv/shiny-server
+      - /${EFI}/log/shiny:/var/log/shiny-server
+      - /${EFI}:/efi_neon_challenge
+
+  ## not necessary, just for convenience 
+  monitor:
+    image: netdata/netdata  
+    restart: always
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt: 
+      - apparmor=unconfined
+ 
+  prometheus:
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    image: prom/prometheus
+

@@ -1,0 +1,15 @@
+global:
+scrape_configs:
+- job_name: minio-job
+  bearer_token: eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjQ3OTg4NDc3MzksImlzcyI6InByb21ldGhldXMiLCJzdWIiOiJlZmkifQ.e4eFt1lILs_0ZIJR0on3ngTCk-W6njN-s5FfP0mwf2q-Ya9F55MzqRgUPt78lchU2uXa-CBl6kwp7SXe8TVK9w
+  metrics_path: /minio/v2/metrics/cluster
+  scheme: https
+  static_configs:
+  - targets: [data.ecoforecast.org]
+
+# Here it's Prometheus itself.
+# The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+- job_name: 'prometheus'
+  static_configs:
+  - targets: ['localhost:9090']
+

@@ -1,0 +1,11 @@
+minio_env.sh
+rstudio_env.sh
+log/*
+renv/
+.Rproj.user
+.Renviron
+.env
+.caddy
+*.Rproj
+config/Renviron
+
