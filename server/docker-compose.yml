@@ -16,10 +16,10 @@ services:
     command: server /data{1...4}  --console-address ":9001"
     restart: always
     volumes:
-      - /${EFI}/disk1:/data1
-      - /${EFI}/disk2:/data2
-      - /${EFI}/disk3:/data3
-      - /${EFI}/disk4:/data4
+      - /${S3_BASE}/disk1:/data1
+      - /${S3_BASE}/disk2:/data2
+      - /${S3_BASE}/disk3:/data3
+      - /${S3_BASE}/disk4:/data4
     env_file: ./config/minio_env.sh
 
   rstudio:
@@ -28,12 +28,13 @@ services:
     image: eco4cast/cron
     restart: always
     volumes:
-      - /${EFI}/log/cron:/var/log
-      - /${EFI}:/efi_neon_challenge
+      - /${S3_BASE}/log/cron:/var/log
+      - /${S3_BASE}:/efi_neon_challenge
       - ..:/home/rstudio/Documents
       - /opt/local/renv/cache:/renv/cache
       - ./config/Renviron:/home/rstudio/.Renviron
     env_file: ./config/rstudio_env.sh
+    #command: /bin/bash -c "chown -R rstudio.rstudio /home/rstudio/; /init"
 
   shiny:
     build:
@@ -42,8 +43,8 @@ services:
     restart: always
     volumes:
       - .:/srv/shiny-server
-      - /${EFI}/log/shiny:/var/log/shiny-server
-      - /${EFI}:/efi_neon_challenge
+      - /${S3_BASE}/log/shiny:/var/log/shiny-server
+      - /${S3_BASE}:/efi_neon_challenge
 
   ## not necessary, just for convenience 
   monitor:
