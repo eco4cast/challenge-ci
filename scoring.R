@@ -4,6 +4,7 @@ library(neon4cast)
 library(magrittr)
 library(future)
 
+score_all <- TRUE
 
 ## Heper utility:
 source("R/filter_forecasts.R")
@@ -45,7 +46,9 @@ for(theme in 1:length(themes)){
   targets_file <- filter_theme(targets, themes[theme])
   #targets_files <- monthly_targets(targets_file)
   forecast_files <- filter_theme(forecasts, themes[theme])
-  forecast_files <- filter_dates(forecast_files)
+  if(!score_all){
+    forecast_files <- filter_dates(forecast_files)
+  }
   #matched_targets <- lapply(forecast_files, match_targets, targets_file= targets_file)
   
   forecast_files <- forecast_files %>%
@@ -62,7 +65,7 @@ for(theme in 1:length(themes)){
 message("Uploading scores to EFI server...")
 sink(tempfile())  # aws.s3 is crazy chatty and ignores suppressMessages()..
 
-aws.s3::s3sync("scores", "scores", direction= "upload", verbose=FALSE)
-aws.s3::s3sync("prov", bucket= "prov",  direction= "upload", verbose= FALSE)
+aws.s3::s3sync("scores", "scores", direction = "upload", verbose=FALSE)
+aws.s3::s3sync("prov", bucket= "prov",  direction = "upload", verbose= FALSE)
 
 sink()

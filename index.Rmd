@@ -100,10 +100,10 @@ target.plot <- reactive({
   
   team_date_forecast() %>% 
     ggplot(aes(x = time, y = mean, color = team)) +
-    geom_ribbon(aes(ymin = lower95, ymax = upper95, color = team, fill = team), alpha = 0.3) +
+    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = team, fill = team), alpha = 0.3) +
     geom_line(aes(y = mean, color = team)) +
     geom_point(aes(y = observed), color = "black") +
-    facet_wrap(~siteID) +
+    facet_wrap(~site) +
     labs(x = "time", y = input$target)
 })
 
@@ -199,10 +199,10 @@ target.plot2 <- reactive({
   team_date_forecast2() %>% 
     mutate(forecast_start_time = factor(forecast_start_time)) %>% 
     ggplot(aes(x = time, y = mean, color = forecast_start_time)) +
-    geom_ribbon(aes(ymin = lower95, ymax = upper95, color = forecast_start_time, fill = forecast_start_time), alpha = 0.3) +
+    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = forecast_start_time, fill = forecast_start_time), alpha = 0.3) +
     geom_line(aes(y = mean, color = forecast_start_time)) +
     geom_point(aes(y = observed), color = "black") +
-    facet_wrap(~siteID) +
+    facet_wrap(~site) +
     labs(x = "time", y = input$target2)
 })
 
