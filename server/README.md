@@ -8,11 +8,9 @@ All services are defined by Docker Containers, as specified in [`docker-compose.
 
 - `caddy`:  Caddy is a reverse-proxy server that puts the other services behind a pretty domain name and configures https secure acccess. (https://caddyserver.com/)
 - `minio`: Minio is popular high-performance object store (https://min.io/), providing AWS-S3-compliant buckets for upload and or download.
-- `noaa_gefs`: Runs a custom R script every six hours on a cron job to create downscaled weather forecasts at NEON sites. <https://github.com/eco4cast/NOAA_GEFS_container>
-
 - `netdata`: Netdata is a monitoring service (https://www.netdata.cloud/)
 - `shiny`: An RStudio-Shiny-server instance for interactively exploring scores.  
-- `rstudio` RStudio server instances for experimental work (https://rstudio.com)
+- `rstudio` RStudio server instance (https://rstudio.com)
 
 
 ## Deploying
@@ -20,7 +18,7 @@ All services are defined by Docker Containers, as specified in [`docker-compose.
 This setup depends only on open source software and can be easily deployed on any VM, cloud, or local machine running Docker with [docker-compose](https://docs.docker.com/compose/) installed.  Deployment is nearly configuration-free. To get started, simply clone the repo and switch into the directory: 
 
 ```bash
-git clone https://github.com/eco4cast/ci-server/ && cd ci-server
+git clone https://github.com/eco4cast/challenge-ci/ && cd challenge-ci
 ```
 
 ### Configuration
@@ -52,7 +50,6 @@ See the [docker-compose](https://docs.docker.com/compose/) docs for details.  Fo
 ## Data buckets:
 
 - https://data.ecoforecast.org/minio/drivers/  Download-only portal of Driver data  
-  - https://data.ecoforecast.org/minio/drivers/NOAA_GEFS  Downscaled NOAA forecasts at NEON sites.  
 - https://data.ecoforecast.org/minio/submissions Upload-only portal for submissions
 - https://data.ecoforecast.org/minio/targets Target variables, derived from raw NEON data
 - https://data.ecoforecast.org/minio/forecasts NEON Forecasts
@@ -62,10 +59,14 @@ Can use web interface, direct download URLs, or AWS-S3 API tools.
 
 ## Deployment script
 
+An example of a bash script for deploying the server
+
 ```
 #!/bin/bash
+mkdir eco4cast
+cd ~/eco4cast
 git clone https://github.com/eco4cast/challenge-ci
-cd ~/challenge-ci
+cd ~/eco4cast/challenge-ci
 echo "MINIO_ACCESS_KEY=[insert]" > config/minio_env.sh
 echo "MINIO_SECRET_KEY=[insert]" >> config/minio_env.sh
 echo "PASSWORD=[insert]" > config/rstudio_env.sh
@@ -74,7 +75,7 @@ echo "S3_BASE=/efi_neon_forecast" > .env
 
 ## Make sure DNS mapping is up-to-date first
 ## Now we're ready to bring up the server!
-cd ~/challenge-ci/server
+cd ~/eco4cast/challenge-ci/server
 docker-compose up -d
 ```
 
