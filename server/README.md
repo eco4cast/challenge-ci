@@ -59,3 +59,22 @@ See the [docker-compose](https://docs.docker.com/compose/) docs for details.  Fo
 - https://data.ecoforecast.org/minio/scores Scores of forecasts in the `forecasts` bucket
 
 Can use web interface, direct download URLs, or AWS-S3 API tools.
+
+## Deployment script
+
+```
+#!/bin/bash
+git clone https://github.com/eco4cast/challenge-ci
+cd ~/challenge-ci
+echo "MINIO_ACCESS_KEY=[insert]" > config/minio_env.sh
+echo "MINIO_SECRET_KEY=[insert]" >> config/minio_env.sh
+echo "PASSWORD=[insert" > config/rstudio_env.sh
+echo "root=TRUE" >> config/rstudio_env.sh
+echo "EFI=/efi_neon_forecast" > .env
+
+## Make sure DNS mapping is up-to-date first
+## Now we're ready to bring up the server!
+cd ~/challenge-ci/server
+docker-compose up -d
+```
+
