@@ -12,10 +12,30 @@ beetle_repo <- "neon4cast-beetles"
 phenology_repo <- "neon4cast-phenology"
 ticks_repo <- "neon4cast-ticks"
 
-shared_utilities_repo <- "neon4cast-shared-utilities"
+challange_ci_repo <- "challenge-ci"
 
 scoring_repo <- "neon4cast-scoring"
 submissions_repo <- "neon4cast-submissions"
+
+## Processing Submissions
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "process_submissions.R"),
+                           rscript_log = file.path(log_dir, "process_submissions.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/dad902ab-4847-4303-bd61-c27de2a1b43a")
+cronR::cron_add(command = cmd, frequency = 'hourly', id = 'process_submissions')
+
+## Scoring 
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "scoring.R"),
+                           rscript_log = file.path(log_dir, "scoring.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/1dd67f13-3a08-4a2b-86a3-6f13ab36baca")
+cronR::cron_add(command = cmd, frequency = 'daily', at = "11 am", id = 'scoring')
+
+### Optional additions
 
 ## NOAA Download
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "launch_download_downscale.R"),
@@ -39,16 +59,7 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "ru
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/b2122302-6996-4a08-ab1c-f7f29d04e160")
 cronR::cron_add(command = cmd, frequency = 'daily', at = "4AM", id = 'noaa_stack')
 
-## NEON Download
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, shared_utilities_repo, "neon_download_store.R"),
-                           rscript_log = file.path(log_dir, "neon-download.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, shared_utilities_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/cb249e47-f56b-45da-af7f-9c0c47db1a6c")
-cronR::cron_add(command = cmd,  frequency = 'daily', at = "4AM", id = 'neon_download')
-
-## Phenocam Download
+## Phenocam Download and Target Generation
 
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, phenology_repo, "01_download_phenocam_data.R"),
                            rscript_log = file.path(log_dir, "phenology-download.log"),
@@ -57,7 +68,7 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, phenology_repo, "01_dow
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/f5d48d96-bb41-4c21-b028-930fa2b01c5a")
 cronR::cron_add(command = cmd,  frequency = '0 */2 * * *', id = 'phenocam_download')
 
-## Aquatics
+## Aquatics Targets
 
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, aquatic_repo,"02_generate_targets_aquatics.R"),
                            rscript_log = file.path(log_dir, "aquatics-target.log"),
@@ -93,21 +104,6 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, ticks_repo,"ticks-workf
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/09c7ab10-eb4e-40ef-a029-7a4addc3295b")
 cronR::cron_add(command = cmd, frequency = "0 11 1 * *", id = 'ticks-workflow')
 
-## Scoring 
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, submissions_repo, "process_submissions.R"),
-                           rscript_log = file.path(log_dir, "process_submissions.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, submissions_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/dad902ab-4847-4303-bd61-c27de2a1b43a")
-cronR::cron_add(command = cmd, frequency = 'hourly', id = 'process_submissions')
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, scoring_repo, "scoring.R"),
-                           rscript_log = file.path(log_dir, "scoring.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, scoring_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/1dd67f13-3a08-4a2b-86a3-6f13ab36baca")
-cronR::cron_add(command = cmd, frequency = 'daily', at = "11 am", id = 'scoring')
 
 cronR::cron_ls()
 

@@ -14,8 +14,9 @@ source("R/monthly_targets.R")
 fs::dir_create("forecasts")
 fs::dir_create("targets")
 fs::dir_create("prov")
-#Sys.setenv("AWS_DEFAULT_REGION" = "data",
-#           "AWS_S3_ENDPOINT" = "ecoforecast.org")
+challenge_config <- yaml::read_yaml("challenge_config.yml")
+Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+           "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
 
 message("Downloading forecasts ...")
 
@@ -37,7 +38,7 @@ future::plan(future::multisession)
 furrr::furrr_options(seed=TRUE)
 options("mc.cores"=2)  # using too many cores with too little RAM wil crash
 
-themes <- c("aquatics", "beetles", "phenology", "terrestrial_30min", "terrestrial_daily", "ticks")
+themes <- names(challenge_config$themes)
 
 for(i in 1:length(themes)){
   message(paste0(themes[i]," ..."))

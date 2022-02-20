@@ -1,5 +1,35 @@
-themes: "aquatics","beetles", "phenology", "terrestrial_30min", "terrestrial_daily", "ticks"
-time_unit: "date", "date", "date", "datetime"
-targets: "oxygen", "temperature", "richness", "abundance", "nee","le", "vswc", "gcc_90","rcc_90", "ixodes_scapularis","amblyomma_americanum"
-target_file_name: 
+AWS_DEFAULT_REGION: data
+AWS_S3_ENDPOINT: ecoforecast.org
+endpoint_override: data.ecoforecast.org
+themes:
+  phenology:
+    time_unit: date
+    targets: 
+      - gcc_90
+      - rcc_90
+    targets_file_name: phenology-targets.csv.gz
+  aquatics:
+    time_unit: date 
+    targets: 
+      - oxygen
+      - temperature
+    targets_file_name: aquatics-targets.csv.gz
+  terrestrial_30min:
+    time_unit: datetime
+    targets: 
+      - nee
+      - le
+    targets_file_name: terrestrial_30min-targets.csv.gz
+  terrestrial_daily:
+    time_unit: date
+    targets: 
+      - nee
+      - le
+    targets_file_name: terrestrial_daily-targets.csv.gz
+  beetles:
+    time_unit: date
+    targets: 
+      - richness
+      - abundance
+    targets_file_name: beetles_daily-targets.csv.gz
 

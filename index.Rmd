@@ -23,29 +23,26 @@ Pick Forecast Category {.sidebar}
 
 ```{r}
 #THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
-  Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
-  Sys.unsetenv("AWS_ACCESS_KEY_ID")
-  Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
-  Sys.unsetenv("AWS_DEFAULT_REGION")
-  Sys.unsetenv("AWS_S3_ENDPOINT")
+Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+Sys.unsetenv("AWS_ACCESS_KEY_ID")
+Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
+Sys.unsetenv("AWS_DEFAULT_REGION")
+Sys.unsetenv("AWS_S3_ENDPOINT")
 
-  s <- neon4cast::score_schema()
+s <- neon4cast::score_schema()
 
-theme_choices <- c("aquatics", 
-                   "beetles", 
-                   "phenology", 
-                   "terrestrial_30min", 
-                   "terrestrial_daily", 
-                   "ticks")
+challenge_config <- yaml::read_yaml("challenge_config.yml")
+
+theme_choices <- names(challenge_config$themes)
 
 renderUI({
   selectInput("forecast", "Select forecast theme:", 
-              choices = theme_choices, selected = "phenology")
+              choices = theme_choices, selected = theme_choices[1])
 })
 
 combined <- reactive({
   s3 <- arrow::s3_bucket(bucket = "scores",
-                         endpoint_override = "data.ecoforecast.org",
+                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
                          anonymous=TRUE)
   ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
   df <- ds %>% filter(theme == input$forecast,
@@ -91,7 +88,7 @@ team_date_forecast <-reactive({
   combined() %>% filter(team %in% input$team,
                         lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date),
                         target == input$target
-                        )
+  )
 })
 ```
 
@@ -102,7 +99,7 @@ Forecast Plot
 target.plot <- reactive({
   
   team_date_forecast() %>% 
-  ggplot(aes(x = time, y = mean, color = team)) +
+    ggplot(aes(x = time, y = mean, color = team)) +
     geom_ribbon(aes(ymin = lower95, ymax = upper95, color = team, fill = team), alpha = 0.3) +
     geom_line(aes(y = mean, color = team)) +
     geom_point(aes(y = observed), color = "black") +
@@ -126,29 +123,25 @@ Pick Forecast Category {.sidebar}
 ```{r}
 
 #THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
-  Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
-  Sys.unsetenv("AWS_ACCESS_KEY_ID")
-  Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
-  Sys.unsetenv("AWS_DEFAULT_REGION")
-  Sys.unsetenv("AWS_S3_ENDPOINT")
+Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+Sys.unsetenv("AWS_ACCESS_KEY_ID")
+Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
+Sys.unsetenv("AWS_DEFAULT_REGION")
+Sys.unsetenv("AWS_S3_ENDPOINT")
 
-  s <- neon4cast::score_schema()
+s <- neon4cast::score_schema()
 
-theme_choices <- c("aquatics", 
-                   "beetles", 
-                   "phenology", 
-                   "terrestrial_30min", 
-                   "terrestrial_daily", 
-                   "ticks")
+challenge_config <- yaml::read_yaml("challenge_config.yml")
 
+theme_choices <- names(challenge_config$themes)
 renderUI({
   selectInput("forecast2", "Select forecast theme:", 
-              choices = theme_choices, selected = "phenology")
+              choices = theme_choices, selected = theme_choices[1])
 })
 
 combined2 <- reactive({
   s3 <- arrow::s3_bucket(bucket = "scores",
-                         endpoint_override = "data.ecoforecast.org",
+                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
                          anonymous=TRUE)
   ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
   df <- ds %>% filter(theme == input$forecast2,
@@ -178,7 +171,7 @@ renderUI({
 
 potential_targets2 <- reactive({
   df <- combined2() %>% filter(lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
-                              team == input$team2)
+                               team == input$team2)
   unique(df$target)
 })
 
@@ -190,9 +183,9 @@ renderUI({
 
 team_date_forecast2 <-reactive({
   combined2() %>% filter(team == input$team2,
-                        lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
-                        target == input$target2
-                        )
+                         lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
+                         target == input$target2
+  )
 })
 
 ```
@@ -205,7 +198,7 @@ target.plot2 <- reactive({
   
   team_date_forecast2() %>% 
     mutate(forecast_start_time = factor(forecast_start_time)) %>% 
-  ggplot(aes(x = time, y = mean, color = forecast_start_time)) +
+    ggplot(aes(x = time, y = mean, color = forecast_start_time)) +
     geom_ribbon(aes(ymin = lower95, ymax = upper95, color = forecast_start_time, fill = forecast_start_time), alpha = 0.3) +
     geom_line(aes(y = mean, color = forecast_start_time)) +
     geom_point(aes(y = observed), color = "black") +

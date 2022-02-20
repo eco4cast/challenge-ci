@@ -1,9 +1,9 @@
 #remotes::install_deps()
-
+challenge_config <- yaml::read_yaml("challenge_config.yml")
 ## A place to store everything
 fs::dir_create("submissions")
-#Sys.setenv("AWS_DEFAULT_REGION" = "data",
-#           "AWS_S3_ENDPOINT" = "ecoforecast.org")
+Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+           "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
 
 message("Downloading forecasts ...")
 
@@ -15,7 +15,8 @@ aws.s3::s3sync("submissions", bucket= "submissions",  direction= "download", ver
 
 submissions <- fs::dir_ls("submissions", recurse = TRUE, type = "file")
 
-themes <- c("aquatics", "beetles", "phenology", "terrestrial_30min", "terrestrial_daily", "ticks")
+themes <- names(challenge_config$themes)
+
 if(length(submissions) > 0){
   for(i in 1:length(submissions)){
     if(length(unlist(stringr::str_split(submissions[i], "/"))) == 3){
