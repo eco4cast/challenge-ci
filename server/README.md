@@ -68,9 +68,9 @@ git clone https://github.com/eco4cast/challenge-ci
 cd ~/challenge-ci
 echo "MINIO_ACCESS_KEY=[insert]" > config/minio_env.sh
 echo "MINIO_SECRET_KEY=[insert]" >> config/minio_env.sh
-echo "PASSWORD=[insert" > config/rstudio_env.sh
+echo "PASSWORD=[insert]" > config/rstudio_env.sh
 echo "root=TRUE" >> config/rstudio_env.sh
-echo "EFI=/efi_neon_forecast" > .env
+echo "S3_BASE=/efi_neon_forecast" > .env
 
 ## Make sure DNS mapping is up-to-date first
 ## Now we're ready to bring up the server!
