@@ -41,7 +41,7 @@ options("mc.cores"=2)  # using too many cores with too little RAM wil crash
 
 themes <- names(challenge_config$themes)
 
-for(theme_index in 1:length(themes)){
+for(theme_index in 1:(length(themes)-1)){
   message(paste0(themes[theme_index]," ..."))
   targets_file <- filter_theme(targets, themes[theme_index])
   #targets_files <- monthly_targets(targets_file)
