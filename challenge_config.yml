@@ -32,4 +32,10 @@ themes:
       - richness
       - abundance
     targets_file_name: beetles_daily-targets.csv.gz
+  ticks:
+    time_unit: date
+    targets:
+      - ixodes_scapularis
+      - amblyomma_americanum
+    targets_file_name: ticks_daily-targets.csv.gz
 

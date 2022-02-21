@@ -41,18 +41,19 @@ options("mc.cores"=2)  # using too many cores with too little RAM wil crash
 
 themes <- names(challenge_config$themes)
 
-for(theme in 1:length(themes)){
-  message(paste0(themes[theme]," ..."))
-  targets_file <- filter_theme(targets, themes[theme])
+for(theme_index in 1:length(themes)){
+  message(paste0(themes[theme_index]," ..."))
+  targets_file <- filter_theme(targets, themes[theme_index])
   #targets_files <- monthly_targets(targets_file)
-  forecast_files <- filter_theme(forecasts, themes[theme])
+  forecast_files <- filter_theme(forecasts, themes[theme_index])
   if(!score_all){
     forecast_files <- filter_dates(forecast_files)
+    forecast_files <- forecast_files %>%
+      filter_prov( "prov/scores-prov.tsv", targets_file)
   }
   #matched_targets <- lapply(forecast_files, match_targets, targets_file= targets_file)
   
-  forecast_files <- forecast_files %>%
-    filter_prov( "prov/scores-prov.tsv", targets_file)
+
   
   if(length(forecast_files) > 0){
     score_files <- neon4cast:::score_it(targets_file, forecast_files, dir = "scores/")
