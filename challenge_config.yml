@@ -8,12 +8,14 @@ themes:
       - gcc_90
       - rcc_90
     targets_file_name: phenology-targets.csv.gz
+    only_forecasts: TRUE
   aquatics:
     time_unit: date 
     targets: 
       - oxygen
       - temperature
     targets_file_name: aquatics-targets.csv.gz
+    only_forecasts: TRUE
   terrestrial_30min:
     time_unit: datetime
     targets: 
@@ -26,16 +28,19 @@ themes:
       - nee
       - le
     targets_file_name: terrestrial_daily-targets.csv.gz
+    only_forecasts: TRUE
   beetles:
     time_unit: date
     targets: 
       - richness
       - abundance
     targets_file_name: beetles_daily-targets.csv.gz
+    only_forecasts: TRUE
   ticks:
     time_unit: date
     targets:
       - ixodes_scapularis
       - amblyomma_americanum
     targets_file_name: ticks_daily-targets.csv.gz
+    only_forecasts: FALSE
 

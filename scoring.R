@@ -53,10 +53,13 @@ for(theme_index in 1:(length(themes)-1)){
   }
   #matched_targets <- lapply(forecast_files, match_targets, targets_file= targets_file)
   
+  target_vars <- challenge_config$themes[[theme_index]]$targets
+  only_forecasts <- challenge_config$themes[[theme_index]]$only_forecasts
 
   
   if(length(forecast_files) > 0){
-    score_files <- neon4cast:::score_it(targets_file, forecast_files, dir = "scores/")
+    score_files <- neon4cast:::score_it(targets_file, forecast_files, dir = "scores/", target_vars = target_vars, only_forecasts = only_forecasts)
+
     prov::write_prov_tsv(data_in = c(targets_file, forecast_files),  data_out = score_files, provdb =  "prov/scores-prov.tsv")
   }
 }
