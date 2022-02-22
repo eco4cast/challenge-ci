@@ -41,7 +41,7 @@ options("mc.cores"=2)  # using too many cores with too little RAM wil crash
 
 themes <- names(challenge_config$themes)
 
-for(theme_index in 1:(length(themes)-1)){
+for(theme_index in 1:length(themes)){
   message(paste0(themes[theme_index]," ..."))
   targets_file <- filter_theme(targets, themes[theme_index])
   #targets_files <- monthly_targets(targets_file)
@@ -56,10 +56,10 @@ for(theme_index in 1:(length(themes)-1)){
   target_vars <- challenge_config$themes[[theme_index]]$targets
   only_forecasts <- challenge_config$themes[[theme_index]]$only_forecasts
 
-  
   if(length(forecast_files) > 0){
     score_files <- neon4cast:::score_it(targets_file, forecast_files, dir = "scores/", target_vars = target_vars, only_forecasts = only_forecasts)
 
+    message("...writing to prov")
     prov::write_prov_tsv(data_in = c(targets_file, forecast_files),  data_out = score_files, provdb =  "prov/scores-prov.tsv")
   }
 }
