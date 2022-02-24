@@ -4,12 +4,11 @@ library(neon4cast)
 library(magrittr)
 library(future)
 
-score_all <- TRUE
+score_all <- FALSE
 
 ## Heper utility:
 source("R/filter_forecasts.R")
 source("R/monthly_targets.R")
-
 
 ## A place to store everything
 fs::dir_create("forecasts")

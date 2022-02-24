@@ -38,20 +38,35 @@ cronR::cron_add(command = cmd, frequency = 'daily', at = "11 am", id = 'scoring'
 ### Optional additions
 
 ## NOAA Download
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "launch_download_downscale.R"),
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "download_gefs_grid.R"),
                     rscript_log = file.path(log_dir, "noaa-download.log"),
                     log_append = FALSE,
                     workdir = file.path(home_dir, noaa_download_repo),
                     trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/2889eaa2-cb7a-4e3b-b76e-b034e340295f")
-cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_download')
+cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_gefs_download')
 
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "launch_cfs_download_downscale.R"),
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "download_cfs_grid.R"),
                            rscript_log = file.path(log_dir, "noaacfs-download.log"),
                            log_append = FALSE,
                            workdir = file.path(home_dir, noaa_download_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bccdd589-2c8d-49cc-8404-033d6c8ed12a")
-cronR::cron_add(command = cmd, frequency = '0 */3 * * *', id = 'noaacfs_download')
+cronR::cron_add(command = cmd, frequency = '0 */3 * * *', id = 'noaa_cfs_download')
 
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "process_gefs_grid.R"),
+                           rscript_log = file.path(log_dir, "noaa_gefs_process.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, noaa_download_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bb342112-d500-4b00-8410-bf8e78c47851")
+cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_gefs_process.log')
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "process_cfs_grid.R"),
+                           rscript_log = file.path(log_dir, "noaa_cfs_process.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, noaa_download_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/037c43ec-4c47-4e4d-952d-71f3df80cb3c")
+cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_cfs_process.log')
+
+## 
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "run_stack_noaa.R"),
                            rscript_log = file.path(log_dir, "noaa-stack.log"),
                            log_append = FALSE,
