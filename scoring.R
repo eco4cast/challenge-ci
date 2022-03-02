@@ -1,21 +1,23 @@
 # remotes::install_deps()
 library(neon4cast)
-library(magrittr)
 library(future)
 library(arrow)
 library(dplyr)
+library(purrr)
 
-## Helper utility because arrow::write_csv_arrow() can't handle diff-time
+## Helper functions probably belong in `neon4cast`
+
+## Helper utility because arrow::write_csv_arrow() can't handle diff-time!!
 serialize_raw <- function(object,
                           fun = readr::write_csv,
                           ...) {
-  zzz <- file(open="w+b")
+  zzz <- file(open="w+b") # we will serialize to an 'anonymous file'
   on.exit(close(zzz))
-  ## Serialize to anonymous file
   fun(object, zzz, ...)
-  readBin(zzz, "raw", seek(zzz)) #overestimate with maximum desired chunk size
+  readBin(zzz, "raw", seek(zzz))
 }
 
+## Our publish functions to the scoring bucket select the filename from file contents
 score_name <- function(scores, ext = "csv") {
   r <- utils::head(scores, 1)
   paste0(paste("scores", r$theme, r$time, r$team, sep = "-"), ".", ext)
@@ -39,17 +41,22 @@ write_parquet_s3 <- function(df,
                              file_name = score_name(df, "parquet")
                              ) {
   path <- s3$path(file_name)
-  arrow::write_parquet(scores, path)
+  arrow::write_parquet(df, path)
   file_name
 }
 
-target_vars <- c("oxygen", 
+TARGET_VARS <- c("oxygen", 
                 "temperature", "richness", "abundance", "nee", "le", "vswc", 
                 "gcc_90", "rcc_90", "ixodes_scapularis", "amblyomma_americanum")
-only_forecasts <- TRUE
+
+#
+#  Scoring follows a customized strategy here for efficiency
+# 
 
 ## assumes a pivoted targets data.frame is provided.
-score_fn <- function(forecast_file, target, target_vars) {
+score_fn <- function(forecast_file, target, target_vars = TARGET_VARS) {
+  options(readr.show_progress=FALSE) # read_forecast is verbose
+  
   forecast_file %>% 
     neon4cast:::read_forecast() %>%
     mutate(filename = forecast_file) %>% 
@@ -58,59 +65,66 @@ score_fn <- function(forecast_file, target, target_vars) {
     neon4cast:::include_horizon()
 }
 
-score_all <- function(forecast_files, targets_file, s3_scores) {
+score_all <- function(forecast_files, targets_file,
+                      s3_scores, target_vars = TARGET_VARS) {
   ## parse target file *once*
   theme <- strsplit(basename(targets_file), "[-_]")[[1]][[1]]
   target <- readr::read_csv(targets_file, show_col_types = FALSE, 
                             lazy = FALSE, progress = FALSE) %>% 
     mutate(theme = theme) %>% 
     neon4cast:::pivot_target(target_vars)
+  
   ## Score every forecast against the same targets
   furrr::future_walk(forecast_files, 
                      function(file) {
                        score_fn(file, 
                                 target = target, 
                                 target_vars = target_vars) %>%
-                         write_scores_s3(s3_scores)
+                         write_csv_s3(s3_scores)
                      }
   )
 }
 
 
-score_theme <- function(theme, endpoint = endpoint){
-  
-  s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
-  s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
-  
-  ## only needed to publish scores
-  ## Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY or pass access_key & secret_key
-  s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
-  
+
+
+score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
+
   ## extract URLs for forecasts & targets
   targets <- stringr::str_subset(s3_targets$ls(theme), "[.]csv(.gz)?")
   forecasts <- stringr::str_subset(s3_forecasts$ls(theme), "[.]csv(.gz)?")
   forecast_urls <- paste0("https://", endpoint, "/forecasts/", forecasts )
   target_urls <- paste0("https://", endpoint, "/targets/", targets )
   
-  ## Ideally, prov filter
+  ## Ideally, prov filter forecasts that have already been scored.
   
-  bench::bench_time({
+  tick <- bench::bench_time({
   score_all(forecast_urls, target_urls, s3_scores)
   })
+  message(paste("scored", theme, "in", tick[[2]]))
+  
 }
 
 
-future::plan(future::multicore)
-furrr::furrr_options(seed=TRUE)
-options(mc.cores=4, readr.show_progress=FALSE)  # using too many cores with too little RAM will crash
-endpoint = "minio.thelio.carlboettiger.info"
+## parallel scoring optional, too many cores/RAM will crash
+#future::plan(future::multicore)
+#furrr::furrr_options(seed=TRUE)
 
-score_theme("aquatics", endpoint = endpoint)
-score_theme("beetles", endpoint = endpoint)
-#score_theme("ticks", endpoint = endpoint)
-score_theme("terrestrial_daily", endpoint = endpoint)
-score_theme("terrestrial_30min", endpoint = endpoint)
-score_theme("phenology", endpoint = endpoint)
+
+endpoint = "minio.thelio.carlboettiger.info"
+s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
+s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
+## Publishing Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY set
+s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
+
+# Here we go!
+c("aquatics",             ## 1m
+  "beetles",              ## 17s
+  #"ticks",               ## error plotID column does not exist
+  "terrestrial_daily",    ## 9.2m
+  "terrestrial_30min",    ##
+  "phenology") %>%        ##
+  purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores)
 
 
 
