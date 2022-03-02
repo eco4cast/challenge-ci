@@ -129,12 +129,12 @@ s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
 s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
 
 # Here we go!
-c("aquatics",             ## 1m
+c("aquatics",             ## 26.5s
   "beetles",              ## 17s
   #"ticks",               ## error plotID column does not exist
   "terrestrial_daily",    ## 9.2m
-  "terrestrial_30min",    ##
-  "phenology") %>%        ##
+  "terrestrial_30min",    ## 18.1m
+  "phenology") %>%        ## 6.31m
   purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores)
 
 
