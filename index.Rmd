@@ -13,6 +13,23 @@ library(tidyverse)
 library(readr)
 library(arrow)
 library(neon4cast)
+
+#THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
+Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+Sys.unsetenv("AWS_ACCESS_KEY_ID")
+Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
+Sys.unsetenv("AWS_DEFAULT_REGION")
+Sys.unsetenv("AWS_S3_ENDPOINT")
+
+s <- neon4cast::score_schema()
+challenge_config <- yaml::read_yaml("challenge_config.yml")
+
+s3 <- arrow::s3_bucket(bucket = "scores",
+                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
+                         anonymous=TRUE)
+ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1) %>% collect()
+theme_choices <- names(challenge_config$themes)
+
 ```
 
 Visualize forecast submissions by date
@@ -22,31 +39,14 @@ Pick Forecast Category {.sidebar}
 -----------------------------------------------------------------------
 
 ```{r}
-#THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
-Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
-Sys.unsetenv("AWS_ACCESS_KEY_ID")
-Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
-Sys.unsetenv("AWS_DEFAULT_REGION")
-Sys.unsetenv("AWS_S3_ENDPOINT")
-
-s <- neon4cast::score_schema()
-
-challenge_config <- yaml::read_yaml("challenge_config.yml")
-
-theme_choices <- names(challenge_config$themes)
-
 renderUI({
   selectInput("forecast", "Select forecast theme:", 
               choices = theme_choices, selected = theme_choices[1])
 })
 
 combined <- reactive({
-  s3 <- arrow::s3_bucket(bucket = "scores",
-                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
-                         anonymous=TRUE)
-  ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
   df <- ds %>% filter(theme == input$forecast,
-                      forecast_start_time > lubridate::as_date("2021-02-01")) %>% collect()
+                      forecast_start_time > lubridate::as_date("2021-02-01"))
   df
 })
 
@@ -139,31 +139,14 @@ Pick Forecast Category {.sidebar}
 
 ```{r}
 
-#THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
-Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
-Sys.unsetenv("AWS_ACCESS_KEY_ID")
-Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
-Sys.unsetenv("AWS_DEFAULT_REGION")
-Sys.unsetenv("AWS_S3_ENDPOINT")
-
-s <- neon4cast::score_schema()
-
-challenge_config <- yaml::read_yaml("challenge_config.yml")
-
-theme_choices <- names(challenge_config$themes)
-
 renderUI({
   selectInput("forecast2", "Select forecast theme:", 
               choices = theme_choices, selected = theme_choices[1])
 })
 
 combined2 <- reactive({
-  s3 <- arrow::s3_bucket(bucket = "scores",
-                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
-                         anonymous=TRUE)
-  ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1)
   df <- ds %>% filter(theme == input$forecast2,
-                      forecast_start_time > lubridate::as_date("2021-02-01")) %>% collect()
+                      forecast_start_time > lubridate::as_date("2021-02-01"))
   df
 })
 
