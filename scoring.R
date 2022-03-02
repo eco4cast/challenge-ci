@@ -51,7 +51,15 @@ TARGET_VARS <- c("oxygen",
 
 #
 #  Scoring follows a customized strategy here for efficiency
+#  Because we have many forecasts for each single target, 
+#  we pivot the target ONCE and score across all forecasts in the theme.
 # 
+#  In future, we will have separate targets by month, breaking this many-one strategy
+#  And targets will also be pre-pivoted.
+#
+#  In that case, the helper utility will want to compute the appropriate subset of target
+#  files to read based on having read in the forecast.
+#
 
 ## assumes a pivoted targets data.frame is provided.
 score_fn <- function(forecast_file, target, target_vars = TARGET_VARS) {
@@ -92,11 +100,13 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 
   ## extract URLs for forecasts & targets
   targets <- stringr::str_subset(s3_targets$ls(theme), "[.]csv(.gz)?")
-  forecasts <- stringr::str_subset(s3_forecasts$ls(theme), "[.]csv(.gz)?")
+  forecasts <- c(stringr::str_subset(s3_forecasts$ls(theme), "[.]csv(.gz)?"),
+                 stringr::str_subset(s3_forecasts$ls(theme), "[.]nc"))
   forecast_urls <- paste0("https://", endpoint, "/forecasts/", forecasts )
   target_urls <- paste0("https://", endpoint, "/targets/", targets )
   
-  ## Ideally, prov filter forecasts that have already been scored.
+  ## Ideally, filter forecasts that have already been scored.
+  ## Cheap option: determine score file name, and see if either forecast or target is newer.
   
   tick <- bench::bench_time({
   score_all(forecast_urls, target_urls, s3_scores)
@@ -111,6 +121,7 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 #furrr::furrr_options(seed=TRUE)
 
 
+## we simply establish connections to our buckets and away we go:
 endpoint = "minio.thelio.carlboettiger.info"
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
