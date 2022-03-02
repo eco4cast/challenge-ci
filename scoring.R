@@ -128,12 +128,13 @@ c("aquatics",             ## 1m
 
 
 
-## access scores
+
+## Confirm we can access scores
 scores_df <- arrow::open_dataset(s3_scores, 
                                  format="csv",
                                  schema = neon4cast::score_schema(),
                                  skip_rows=1)
-scores_df %>% collect() %>% count(theme)
+scores_df %>% count(theme) %>% collect()
 
 
 
