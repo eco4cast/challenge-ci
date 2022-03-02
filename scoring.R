@@ -1,74 +1,128 @@
 # remotes::install_deps()
-library(aws.s3)
 library(neon4cast)
 library(magrittr)
 library(future)
+library(arrow)
+library(dplyr)
 
-score_all <- FALSE
-
-## Heper utility:
-source("R/filter_forecasts.R")
-source("R/monthly_targets.R")
-
-## A place to store everything
-fs::dir_create("forecasts")
-fs::dir_create("targets")
-fs::dir_create("prov")
-challenge_config <- yaml::read_yaml("challenge_config.yml")
-Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
-           "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
-
-message("Downloading forecasts ...")
-
-## Note: s3sync stupidly also requires auth credentials even to download from public bucket
-
-sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync("forecasts", bucket= "forecasts",  direction= "download", verbose= FALSE)
-aws.s3::s3sync("targets", "targets", direction= "download", verbose=FALSE)
-aws.s3::s3sync("prov", bucket= "prov",  direction= "download", verbose= FALSE)
-
-sink()
-
-## List all the downloaded files
-targets <- fs::dir_ls("targets", recurse = TRUE, type = "file")
-forecasts <- fs::dir_ls("forecasts", recurse = TRUE, type = "file")
-
-## Opt in to parallel execution (for score-it)
-future::plan(future::multisession)
-furrr::furrr_options(seed=TRUE)
-options("mc.cores"=2)  # using too many cores with too little RAM wil crash
-
-themes <- names(challenge_config$themes)
-
-for(theme_index in 1:length(themes)){
-  message(paste0(themes[theme_index]," ..."))
-  targets_file <- filter_theme(targets, themes[theme_index])
-  #targets_files <- monthly_targets(targets_file)
-  forecast_files <- filter_theme(forecasts, themes[theme_index])
-  if(!score_all){
-    forecast_files <- filter_dates(forecast_files)
-    forecast_files <- forecast_files %>%
-      filter_prov( "prov/scores-prov.tsv", targets_file)
-  }
-  #matched_targets <- lapply(forecast_files, match_targets, targets_file= targets_file)
-  
-  target_vars <- challenge_config$themes[[theme_index]]$targets
-  only_forecasts <- challenge_config$themes[[theme_index]]$only_forecasts
-
-  if(length(forecast_files) > 0){
-    score_files <- neon4cast:::score_it(targets_file, forecast_files, dir = "scores/", target_vars = target_vars, only_forecasts = only_forecasts)
-
-    message("...writing to prov")
-    prov::write_prov_tsv(data_in = c(targets_file, forecast_files),  data_out = score_files, provdb =  "prov/scores-prov.tsv")
-  }
+## Helper utility because arrow::write_csv_arrow() can't handle diff-time
+serialize_raw <- function(object,
+                          fun = readr::write_csv,
+                          ...) {
+  zzz <- file(open="w+b")
+  on.exit(close(zzz))
+  ## Serialize to anonymous file
+  fun(object, zzz, ...)
+  readBin(zzz, "raw", seek(zzz)) #overestimate with maximum desired chunk size
 }
 
-##### Requires secure credentials to upload data to s3 bucket  ##########
+score_name <- function(scores, ext = "csv") {
+  r <- utils::head(scores, 1)
+  paste0(paste("scores", r$theme, r$time, r$team, sep = "-"), ".", ext)
+}
 
-message("Uploading scores to EFI server...")
-sink(tempfile())  # aws.s3 is crazy chatty and ignores suppressMessages()..
+## because arrow::write_csv_arrow() sucks
+write_csv_s3 <- function(df,
+                         s3,
+                         file_name = score_name(df, "csv")
+                         ) {
+  raw <- serialize_raw(df, readr::write_csv)
+  x <- s3$OpenOutputStream(file_name)
+  x$write(raw)
+  x$close()
+  
+  file_name
+}
 
-aws.s3::s3sync("scores", "scores", direction = "upload", verbose=FALSE)
-aws.s3::s3sync("prov", bucket= "prov",  direction = "upload", verbose= FALSE)
+write_parquet_s3 <- function(df, 
+                             s3,
+                             file_name = score_name(df, "parquet")
+                             ) {
+  path <- s3$path(file_name)
+  arrow::write_parquet(scores, path)
+  file_name
+}
 
-sink()
+target_vars <- c("oxygen", 
+                "temperature", "richness", "abundance", "nee", "le", "vswc", 
+                "gcc_90", "rcc_90", "ixodes_scapularis", "amblyomma_americanum")
+only_forecasts <- TRUE
+
+## assumes a pivoted targets data.frame is provided.
+score_fn <- function(forecast_file, target, target_vars) {
+  forecast_file %>% 
+    neon4cast:::read_forecast() %>%
+    mutate(filename = forecast_file) %>% 
+    neon4cast:::pivot_forecast(target_vars) %>% 
+    neon4cast:::crps_logs_score(target) %>%
+    neon4cast:::include_horizon()
+}
+
+score_all <- function(forecast_files, targets_file, s3_scores) {
+  ## parse target file *once*
+  theme <- strsplit(basename(targets_file), "[-_]")[[1]][[1]]
+  target <- readr::read_csv(targets_file, show_col_types = FALSE, 
+                            lazy = FALSE, progress = FALSE) %>% 
+    mutate(theme = theme) %>% 
+    neon4cast:::pivot_target(target_vars)
+  ## Score every forecast against the same targets
+  furrr::future_walk(forecast_files, 
+                     function(file) {
+                       score_fn(file, 
+                                target = target, 
+                                target_vars = target_vars) %>%
+                         write_scores_s3(s3_scores)
+                     }
+  )
+}
+
+
+score_theme <- function(theme, endpoint = endpoint){
+  
+  s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
+  s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
+  
+  ## only needed to publish scores
+  ## Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY or pass access_key & secret_key
+  s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
+  
+  ## extract URLs for forecasts & targets
+  targets <- stringr::str_subset(s3_targets$ls(theme), "[.]csv(.gz)?")
+  forecasts <- stringr::str_subset(s3_forecasts$ls(theme), "[.]csv(.gz)?")
+  forecast_urls <- paste0("https://", endpoint, "/forecasts/", forecasts )
+  target_urls <- paste0("https://", endpoint, "/targets/", targets )
+  
+  ## Ideally, prov filter
+  
+  bench::bench_time({
+  score_all(forecast_urls, target_urls, s3_scores)
+  })
+}
+
+
+future::plan(future::multicore)
+furrr::furrr_options(seed=TRUE)
+options(mc.cores=4, readr.show_progress=FALSE)  # using too many cores with too little RAM will crash
+endpoint = "minio.thelio.carlboettiger.info"
+
+score_theme("aquatics", endpoint = endpoint)
+score_theme("beetles", endpoint = endpoint)
+#score_theme("ticks", endpoint = endpoint)
+score_theme("terrestrial_daily", endpoint = endpoint)
+score_theme("terrestrial_30min", endpoint = endpoint)
+score_theme("phenology", endpoint = endpoint)
+
+
+
+## access scores
+scores_df <- arrow::open_dataset(s3_scores, 
+                                 format="csv",
+                                 schema = neon4cast::score_schema(),
+                                 skip_rows=1)
+scores_df %>% collect() %>% count(theme)
+
+
+
+
+
+
