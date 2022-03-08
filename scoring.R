@@ -16,31 +16,41 @@ serialize_raw <- function(object,
   fun(object, zzz, ...)
   readBin(zzz, "raw", seek(zzz))
 }
-
-## Our publish functions to the scoring bucket select the filename from file contents
-score_name <- function(scores, ext = "csv") {
-  r <- utils::head(scores, 1)
-  paste0(paste("scores", r$theme, r$time, r$team, sep = "-"), ".", ext)
-}
-
 ## because arrow::write_csv_arrow() sucks
 write_csv_s3 <- function(df,
                          s3,
                          file_name = score_name(df, "csv")
-                         ) {
+) {
+  ## note: read_csv_arrow cannot handle Inf either...
+  f <- paste0("csv/", file_name)
+  
   raw <- serialize_raw(df, readr::write_csv)
-  x <- s3$OpenOutputStream(file_name)
+  x <- s3$OpenOutputStream(f)
   x$write(raw)
   x$close()
   
   file_name
 }
 
+
+
+## Our publish functions to the scoring bucket select the filename from file contents
+score_name <- function(scores, ext = "csv") {
+  r <- utils::head(scores, 1)
+  paste(r$theme,
+    paste0(paste("scores", r$theme, r$time, r$team, sep = "-"),
+           ".", ext),
+        sep="/")
+}
+
+
+
 write_parquet_s3 <- function(df, 
                              s3,
                              file_name = score_name(df, "parquet")
                              ) {
-  path <- s3$path(file_name)
+  f <- paste0("parquet/", file_name)
+  path <- s3$path(f)
   arrow::write_parquet(df, path)
   file_name
 }
@@ -88,7 +98,7 @@ score_all <- function(forecast_files, targets_file,
                        score_fn(file, 
                                 target = target, 
                                 target_vars = target_vars) %>%
-                         write_csv_s3(s3_scores)
+                         write_parquet_s3(s3_scores)
                      }
   )
 }
@@ -120,18 +130,24 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 #future::plan(future::multicore)
 #furrr::furrr_options(seed=TRUE)
 
+#fs <- arrow::LocalFileSystem$create()
+#local_scores <- fs$path("scores/")
+
 
 ## we simply establish connections to our buckets and away we go:
-endpoint = "minio.thelio.carlboettiger.info"
+endpoint = "minio.carlboettiger.info"
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
 ## Publishing Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY set
 s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
 
+
+# score_theme("aquatics", s3_forecasts, s3_targets, s3_scores)
+
 # Here we go!
-c("aquatics",             ## 26.5s
-  "beetles",              ## 17s
-  #"ticks",               ## error plotID column does not exist
+c("aquatics",             ## 15.5s
+  "beetles",              ## 9.36s
+#  "ticks",               ## error plotID column does not exist
   "terrestrial_daily",    ## 9.2m
   "terrestrial_30min",    ## 18.1m
   "phenology") %>%        ## 6.31m
