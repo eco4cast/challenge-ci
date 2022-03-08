@@ -135,22 +135,26 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 
 
 ## we simply establish connections to our buckets and away we go:
+endpoint = "data.ecoforecast.org"
+
+# faster mirror
 endpoint = "minio.carlboettiger.info"
+
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
 ## Publishing Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY set
 s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
 
 
-# score_theme("aquatics", s3_forecasts, s3_targets, s3_scores)
+# score_theme("phenology", s3_forecasts, s3_targets, s3_scores)
 
 # Here we go!
 c("aquatics",             ## 15.5s
   "beetles",              ## 9.36s
-#  "ticks",               ## error plotID column does not exist
+  "ticks",                ## 4.3m
   "terrestrial_daily",    ## 9.2m
-  "terrestrial_30min",    ## 18.1m
-  "phenology") %>%        ## 6.31m
+  "terrestrial_30min",    ## 1.87hr (18m for csv.gz files)
+  "phenology") %>%        ## 34.8m (6.31m for csv)
   purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores)
 
 
