@@ -10,7 +10,7 @@ target_schema <- arrow::schema(
     x          = arrow::float64(),
     y          = arrow::float64(),
     z          = arrow::float64(),
-    time       = arrow::timestamp("ns"),
+    time       = arrow::timestamp("us", "UTC"),
     target     = arrow::string(),
     observed   = arrow::float64(),
     theme      = arrow::string()
