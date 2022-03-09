@@ -158,6 +158,8 @@ c("aquatics",             ## 15.5s
 scores_df <- arrow::open_dataset(s3_scores$path("parquet"))
 scores_df %>% count(theme) %>% collect()
 
+# access a subset of scores by path alone:
+phenology <- arrow::open_dataset(s3_scores$path("parquet/phenology"))
 
 
 
