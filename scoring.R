@@ -5,10 +5,7 @@ library(arrow)
 library(dplyr)
 library(purrr)
 
-## Helper functions probably belong in `neon4cast`
-
-s <- 
-  arrow::schema(
+target_schema <- arrow::schema(
     site       = arrow::string(),
     x          = arrow::float64(),
     y          = arrow::float64(),
@@ -18,77 +15,31 @@ s <-
     observed   = arrow::float64(),
     theme      = arrow::string()
     # year = arrow::int32()     ## can't use, see: https://issues.apache.org/jira/browse/ARROW-15879?filter=-2
-    
   )
-
-
-## Helper utility because arrow::write_csv_arrow() can't handle diff-time!!
-serialize_raw <- function(object,
-                          fun = readr::write_csv,
-                          ...) {
-  zzz <- file(open="w+b") # we will serialize to an 'anonymous file'
-  on.exit(close(zzz))
-  fun(object, zzz, ...)
-  readBin(zzz, "raw", seek(zzz))
-}
-## because arrow::write_csv_arrow() sucks
-write_csv_s3 <- function(df,
-                         s3,
-                         file_name = score_name(df, "csv")
-) {
-  ## note: read_csv_arrow cannot handle Inf either...
-  f <- paste0("csv/", file_name)
-  
-  raw <- serialize_raw(df, readr::write_csv)
-  x <- s3$OpenOutputStream(f)
-  x$write(raw)
-  x$close()
-  
-  file_name
-}
-
-
-
-## Our publish functions to the scoring bucket select the filename from file contents
-score_name <- function(scores, ext = "csv") {
-  r <- utils::head(scores, 1)
-  paste(r$theme,
-    paste0(paste("scores", r$theme, r$time, r$team, sep = "-"),
-           ".", ext),
-        sep="/")
-}
-
-
-
-write_parquet_s3 <- function(df, 
-                             s3,
-                             file_name = score_name(df, "parquet")
-                             ) {
-  f <- paste0("parquet/", file_name)
-  path <- s3$path(f)
-  arrow::write_parquet(df, path)
-  file_name
-}
 
 TARGET_VARS <- c("oxygen", 
                 "temperature", "richness", "abundance", "nee", "le", "vswc", 
                 "gcc_90", "rcc_90", "ixodes_scapularis", "amblyomma_americanum")
 
+## takes a pivoted targets but un-pivoted forecast
+## if pivot_* fns were smart they could conditionally pivot
+score <- function(forecast_df, target_df) {
+  forecast_df %>%
+    neon4cast:::pivot_forecast(TARGET_VARS) %>%
+    neon4cast:::crps_logs_score(target_df) %>%
+    neon4cast:::include_horizon()
+}
 
-
-
-# Filter target by the dates in the forecast
 # "target" can be a pointer to S3 bucket
 # works with local or target data.frame too, but is unnecessary in that case 
 # (bc data is targets have been fully parsed then and scoring will do filtering join anyway)
-
 subset_target <- function(forecast_df, target) {
   range <- forecast_df %>% 
     summarise(start = min(time), end=max(time))
   start <- range$start[[1]]
   end <- range$end[[1]]
   
-  year <- lubridate::year(start) # potential speed up
+  year <- lubridate::year(start) # potential speed up, but arrow bug...
   target %>%
     filter(
       #year >= {{year}}, 
@@ -97,53 +48,60 @@ subset_target <- function(forecast_df, target) {
     collect()
 }
 
-
-score <- function(forecast_df, target_df) {
-  forecast_df %>%
-    neon4cast:::pivot_forecast(target_vars) %>%
-    neon4cast:::crps_logs_score(target_df) %>%
-    neon4cast:::include_horizon()
-}
-
+## Lots of alternative ways to write these; could use local file but would have to sync
+## Note that S3 cannot 'append' to a stream
 ## A poor man's index: says only if id has been seen before
 prov_has <- function(id, s3_prov) {
   prov <-  s3_prov$ls()
   any(grepl(id, prov))
 }
 prov_add <- function(id, s3_prov) {
-  x <- s3_prov$OpenOutputStream(id2)
+  x <- s3_prov$OpenOutputStream(id)
   x$write(raw()) # no actual information
   x$close()
 }
+## Note, we can still access timestamp on prov, and purge older than etc
 
-
-
-
-score_if <- function(forecast_file, target, s3_scores, s3_prov) {
+score_dest <- function(forecast_file, s3_scores, type="parquet"){ 
   
+  out <- tools::file_path_sans_ext(basename(forecast_file), compression = TRUE)
+  theme <- strsplit(out, "-")[[1]][[1]]
+  year <-  strsplit(out, "-")[[1]][[2]]
+  path <- paste(type, theme, year, paste0(out, ".", type), sep="/")
+  
+  s3_scores$path(path)
+}
 
+## Score a single forecast, conditionally on prov
+score_if <- function(forecast_file, 
+                     target, 
+                     s3_prov,
+                     score_file = score_dest(forecast_file, 
+                                             s3_scores,
+                                             "parquet")
+                     ) {
+  
   forecast_df <- neon4cast:::read_forecast(forecast_file) %>% 
     mutate(filename = forecast_file)
-  
   target_df <- subset_target(forecast_df, target)
   
   id <- rlang::hash(list(forecast_df, target_df))
   
-  ## score only unique combinations
+  ## score only unique combinations of subset of targets + forecast
   if(!prov_has(id, s3_prov))
     score(forecast_df, target_df) %>%
-      write_parquet_s3(s3_scores)
+      write_parquet(score_file)
   
   prov_add(id, s3_prov)
   invisible(id)
 }
 
-
+## apply score_if to all forecasts from a theme
 score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
   
-  
   path <- s3_targets$path(glue::glue("{theme}/monthly", theme=theme))
-  target <- arrow::open_dataset(path, format="csv", skip_rows = 1, schema = s) 
+  target <- arrow::open_dataset(path, format="csv", 
+                                skip_rows = 1, schema = target_schema) 
   
   ## extract URLs for forecasts & targets
   forecasts <- c(stringr::str_subset(s3_forecasts$ls(theme), "[.]csv(.gz)?"),
@@ -151,7 +109,7 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
   forecast_urls <- paste0("https://", endpoint, "/forecasts/", forecasts )
 
   tictoc <- bench::bench_time({
-    purrr::walk(forecast_urls, score_if, target, s3_scores, s3_prov)
+    purrr::walk(forecast_urls, score_if, target, s3_prov)
   })
   message(paste("scored", theme, "in", tictoc[[2]]))
   
