@@ -4,7 +4,7 @@ library(future)
 library(arrow)
 library(dplyr)
 library(purrr)
-
+options("readr.show_progress"=FALSE)
 target_schema <- arrow::schema(
     site       = arrow::string(),
     x          = arrow::float64(),
@@ -36,8 +36,8 @@ score <- function(forecast_df, target_df) {
 subset_target <- function(forecast_df, target) {
   range <- forecast_df %>% 
     summarise(start = min(time), end=max(time))
-  start <- range$start[[1]]
-  end <- range$end[[1]]
+  start <- lubridate::as_datetime(range$start[[1]])
+  end <- lubridate::as_datetime(range$end[[1]])
   
   year <- lubridate::year(start) # potential speed up, but arrow bug...
   target %>%
