@@ -10,7 +10,7 @@ phenology <- arrow::open_dataset(s3_scores$path("parquet/phenology"))
 
 
 null_fill <- function(df, null_team = "EFInull") {
-  df < - df %>% filter(!is.na(observed)) %>% collect()
+  df <- df %>% filter(!is.na(observed)) %>% collect()
   null <- df %>% 
     filter(team == null_team) %>%
     select("theme", "target", "x","y","z", "site", "time",
