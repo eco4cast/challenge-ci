@@ -29,7 +29,7 @@ null_fill <- function(df, null_team = "EFInull") {
 }
 
 
-myfilled <- null_fill(df)
+myfilled <- null_fill(phenology)
 
 leaderboard <- myfilled %>% 
   group_by(team, target) %>%
