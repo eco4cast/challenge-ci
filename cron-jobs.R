@@ -122,4 +122,15 @@ cronR::cron_add(command = cmd, frequency = "0 11 1 * *", id = 'ticks-workflow')
 
 cronR::cron_ls()
 
+#####
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo,"sync_scores.R"),
+                           rscript_log = file.path(log_dir, "sync_scores.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, challange_ci_repo))
+cronR::cron_add(command = cmd, frequency = "59 * * * *", id = 'sync-scores')
+
+
+cronR::cron_ls()
+
 

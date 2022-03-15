@@ -24,9 +24,11 @@ Sys.unsetenv("AWS_S3_ENDPOINT")
 s <- neon4cast::score_schema()
 challenge_config <- yaml::read_yaml("challenge_config.yml")
 
-s3 <- arrow::s3_bucket(bucket = "scores",
-                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
-                         anonymous=TRUE)
+#s3 <- arrow::s3_bucket(bucket = "scores",
+#                         endpoint_override = paste0(challenge_config$AWS_DEFAULT_REGION,".",challenge_config$AWS_S3_ENDPOINT),
+#                         anonymous=TRUE)
+
+s3 <- "/efi_neon_challenge/local/scores"
 ds <- arrow::open_dataset(s3, schema=s, format = "csv", skip_rows = 1) %>% collect()
 theme_choices <- names(challenge_config$themes)
 
