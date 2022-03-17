@@ -166,12 +166,10 @@ c("aquatics",             ## 15.5s
 ## Confirm we can access scores
 s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = "minio.carlboettiger.info")
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
-scores_df <- arrow::open_dataset(s3_scores$path("parquet"))
-scores_df %>% count(theme) %>% collect()
+ds %>% count(theme) %>% collect()
 
-# access a subset of scores by path alone:
-phenology <- arrow::open_dataset(s3_scores$path("parquet/phenology"))
-
+# filtering by theme or year before collect will be fast too!
+# ds %>% filter(year > 2021, theme=="phenology") %>% collect()
 
 
 
