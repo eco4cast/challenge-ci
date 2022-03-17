@@ -154,21 +154,21 @@ c("aquatics",             ## 15.5s
 # score_theme("phenology", s3_forecasts, s3_targets, s3_scores)
 
 # Here we go!
-c("aquatics",             ## 15.5s
-  "beetles",              ## 9.36s
-  "ticks",                ## 4.3m
-  "terrestrial_daily",    ## 9.2m
-  "terrestrial_30min",    ## 1.87hr (18m for csv.gz files)
-  "phenology") %>%        ## 34.8m (6.31m for csv)
-  purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores)
+#c("aquatics",             ## 15.5s
+#  "beetles",              ## 9.36s
+#  "ticks",                ## 4.3m
+#  "terrestrial_daily",    ## 9.2m
+#  "terrestrial_30min",    ## 1.87hr (18m for csv.gz files)
+#  "phenology") %>%        ## 34.8m (6.31m for csv)
+#  purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores)
 
 
 
 
 ## Confirm we can access scores
-s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = "minio.carlboettiger.info")
-ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
-ds %>% count(theme) %>% collect()
+#s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = "minio.carlboettiger.info")
+#ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
+#ds %>% count(theme) %>% collect()
 
 # filtering by theme or year before collect will be fast too!
 # ds %>% filter(year > 2021, theme=="phenology") %>% collect()
