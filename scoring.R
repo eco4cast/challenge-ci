@@ -127,7 +127,7 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 
 ## we simply establish connections to our buckets and away we go:
 endpoint = "data.ecoforecast.org"
-#endpoint = "minio.carlboettiger.info" # faster mirror
+endpoint = "minio.carlboettiger.info" # faster mirror
 s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
