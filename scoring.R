@@ -1,6 +1,5 @@
 # remotes::install_deps()
 library(neon4cast)
-library(future)
 library(arrow)
 library(dplyr)
 library(purrr)
@@ -88,13 +87,17 @@ score_if <- function(forecast_file,
   id <- rlang::hash(list(forecast_df, target_df))
   
   ## score only unique combinations of subset of targets + forecast
-  if(!prov_has(id, s3_prov))
+  if(!prov_has(id, s3_prov)) {
     score(forecast_df, target_df) %>%
       write_parquet(score_file)
+  }
   
   prov_add(id, s3_prov)
   invisible(id)
 }
+
+## we care if there are any errors
+score_safely <- purrr::safely(score_if)
 
 ## apply score_if to all forecasts from a theme
 score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
@@ -109,8 +112,14 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
   forecast_urls <- paste0("https://", endpoint, "/forecasts/", forecasts )
 
   tictoc <- bench::bench_time({
-    purrr::walk(forecast_urls, score_if, target, s3_prov)
+    errors <- purrr::map(forecast_urls, score_safely, target, s3_prov)
   })
+  
+  ## warn about errors (e.g. curl upload failures)
+  warnings <- compact(map(errors, ~ .x$error$message))
+  map(warning, warnings)
+  
+  
   message(paste("scored", theme, "in", tictoc[[2]]))
   
 }
@@ -118,7 +127,7 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
 
 ## we simply establish connections to our buckets and away we go:
 endpoint = "data.ecoforecast.org"
-endpoint = "minio.carlboettiger.info" # faster mirror
+#endpoint = "minio.carlboettiger.info" # faster mirror
 s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
@@ -155,6 +164,8 @@ c("aquatics",             ## 15.5s
 
 
 ## Confirm we can access scores
+s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = "minio.carlboettiger.info")
+ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 scores_df <- arrow::open_dataset(s3_scores$path("parquet"))
 scores_df %>% count(theme) %>% collect()
 
