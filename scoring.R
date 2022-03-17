@@ -115,6 +115,8 @@ score_theme <- function(theme, s3_forecasts, s3_targets, s3_scores){
   
 }
 
+Sys.unsetenv("AWS_DEFAULT_REGION")
+Sys.unsetenv("AWS_S3_ENDPOINT")
 
 ## we simply establish connections to our buckets and away we go:
 endpoint = "data.ecoforecast.org"
