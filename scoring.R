@@ -1,5 +1,7 @@
 # remotes::install_deps()
 library(score4cast)
+library(arrow)
+library(purrr)
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 
