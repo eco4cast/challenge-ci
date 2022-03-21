@@ -148,15 +148,16 @@ renderUI({
 })
 
 combined2 <- reactive({
-  
-  s3 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast2)
-  ds <- arrow::open_dataset(s3, partitioning = c("year"))
-  ds %>% filter(year > 2020L, 
+
+  s3_2 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast2)
+  ds2 <- arrow::open_dataset(s3_2, partitioning = c("year"))
+  ds2 %>% filter(year > 2020L, 
                           forecast_start_time > lubridate::as_date("2021-02-01")) %>%
   collect()
 })
 
 file.teams2 <- reactive({
+    print(combined2())
   unique(combined2()$team)
 })
 
