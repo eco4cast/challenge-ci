@@ -17,6 +17,7 @@ submissions <- fs::dir_ls("submissions", recurse = TRUE, type = "file")
 
 themes <- names(challenge_config$themes)
 
+ 
 if(length(submissions) > 0){
   for(i in 1:length(submissions)){
     if(length(unlist(stringr::str_split(submissions[i], "/"))) == 3){
@@ -44,8 +45,17 @@ if(length(submissions) > 0){
         }, file = log_file, type = c("message"))
         
         if(valid){
+          
+          # pivot forecast before transferring
+          fc <- read4cast::read_forecast(curr_submission)
+          df <- score4cast::pivot_forecast(fc, target_vars = score4cast:::TARGET_VARS)
+          pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
+          readr::write_csv(df, pivoted_fc)
+          # Then copy the original to the archives subdir
+          aws.s3::put_object(file = pivoted_fc, 
+                              object = paste0("s3://forecasts/", theme,"/",pivoted_fc))
           aws.s3::copy_object(from_object = curr_submission, 
-                              to_object = paste0(theme,"/",curr_submission), 
+                              to_object = paste0("raw/", theme,"/",curr_submission), 
                               from_bucket = "submissions", 
                               to_bucket = "forecasts")
           if(aws.s3::object_exists(object = paste0(theme,"/",curr_submission), bucket = "forecasts")){
