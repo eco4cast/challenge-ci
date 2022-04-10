@@ -13,14 +13,9 @@ Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 endpoint = "data.ecoforecast.org"
 s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
 s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
-
 ## Publishing Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY set
-s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint, 
-                              access_key=Sys.getenv("AWS_ACCESS_KEY_ID"),
-                              secret_key=Sys.getenv("AWS_SECRET_ACCESS_KEY"))
-s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint, 
-                            access_key=Sys.getenv("AWS_ACCESS_KEY_ID"),
-                            secret_key=Sys.getenv("AWS_SECRET_ACCESS_KEY"))
+s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
+s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
@@ -36,6 +31,10 @@ errors <-
     "phenology") %>%        ## 34.8m (6.31m for csv)
   purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
 
+failed_urls <- unlist(map(1:6, function(i)
+errors[[i]]$urls
+))
+message(paste("some URLs failed to score:\n", paste(failed_urls, collapse="\n")))
 
 
 ## Confirm we can access scores
@@ -48,4 +47,6 @@ combined <- ds %>% dplyr::collect()
 combined %>% filter(theme == "phenology", issue_date == max(issue_date))
 
 
-
+ds %>% dplyr::group_by(theme) %>% 
+  dplyr::summarize(max = max(start_time)) %>%
+  dplyr::collect()
