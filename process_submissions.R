@@ -51,11 +51,13 @@ if(length(submissions) > 0){
             fc <- read4cast::read_forecast(file.path("submissions", curr_submission))
             df <- score4cast::pivot_forecast(fc, target_vars = score4cast:::TARGET_VARS)
             pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
-            readr::write_csv(df, pivoted_fc)
+            tmp <- file.path(tempdir(), pivoted_fc) 
+	    readr::write_csv(df, tmp)
             # Then copy the original to the archives subdir
-            aws.s3::put_object(file = pivoted_fc, 
+            aws.s3::put_object(file = tmp, 
                                 object = paste0("s3://forecasts/", theme,"/",pivoted_fc))
-          }
+            unlink(tmp) 
+	  }
           
           aws.s3::copy_object(from_object = curr_submission, 
                               from_bucket = "submissions", 
