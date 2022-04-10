@@ -17,6 +17,7 @@ submissions <- fs::dir_ls("submissions", recurse = TRUE, type = "file")
 
 themes <- names(challenge_config$themes)
 
+
 if(length(submissions) > 0){
   for(i in 1:length(submissions)){
     if(length(unlist(stringr::str_split(submissions[i], "/"))) == 3){
@@ -44,15 +45,31 @@ if(length(submissions) > 0){
         }, file = log_file, type = c("message"))
         
         if(valid){
+          
+          # pivot forecast before transferring
+          if(!grepl("[.]xml", curr_submission)){
+            fc <- read4cast::read_forecast(file.path("submissions", curr_submission))
+            df <- fc %>% 
+              mutate(filename = basename(curr_submission)) %>% 
+              score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
+            pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
+            tmp <- file.path(tempdir(), pivoted_fc) 
+            readr::write_csv(df, tmp)
+            # Then copy the original to the archives subdir
+            aws.s3::put_object(file = tmp, 
+                               object = paste0("s3://forecasts/", theme,"/",pivoted_fc))
+            unlink(tmp) 
+          }
+          
           aws.s3::copy_object(from_object = curr_submission, 
-                              to_object = paste0(theme,"/",curr_submission), 
                               from_bucket = "submissions", 
+                              to_object = paste0("raw/", theme,"/",curr_submission), 
                               to_bucket = "forecasts")
-          if(aws.s3::object_exists(object = paste0(theme,"/",curr_submission), bucket = "forecasts")){
+          if(aws.s3::object_exists(object = paste0(theme,"/",pivoted_fc), bucket = "forecasts")){
             print("delete")
             aws.s3::delete_object(object = curr_submission, bucket = "submissions")
           }
-        }else{
+        } else { 
           aws.s3::copy_object(from_object = curr_submission, 
                               to_object = paste0("not_in_standard/",curr_submission), 
                               from_bucket = "submissions", 
@@ -67,7 +84,7 @@ if(length(submissions) > 0){
                                              basename(log_file)), 
                              bucket = "forecasts")
         }
-      }else if(!(theme %in% themes)){
+      } else if(!(theme %in% themes)){
         aws.s3::copy_object(from_object = curr_submission, 
                             to_object = paste0("not_in_standard/",curr_submission), 
                             from_bucket = "submissions",
@@ -100,3 +117,4 @@ if(length(submissions) > 0){
   }
 }
 unlink("submissions",recursive = TRUE)
+
