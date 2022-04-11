@@ -49,14 +49,14 @@ combined <- reactive({
   s3 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast)
   ds <- arrow::open_dataset(s3, partitioning = c("year"))
   ds %>% filter(year > 2020L, 
-                          forecast_start_time > lubridate::as_date("2021-02-01")) %>%
+                          start_time > lubridate::as_date("2021-02-01")) %>%
   collect()
 })
 
 potential_dates <- reactive({
-  df <- combined() %>% 
-    arrange(desc(forecast_start_time))
-  unique(df$forecast_start_time)
+   df <-  unique(combined()$start_time)
+   sort(lubridate::as_date(df), decreasing = TRUE)
+
 })
 
 renderUI({
@@ -65,8 +65,8 @@ renderUI({
 })
 
 file.teams <- reactive({
-  df <- combined() %>% filter(lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date))
-  unique(df$team)
+  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date))
+  unique(df$model_id)
 })
 
 renderUI({
@@ -75,9 +75,9 @@ renderUI({
 })
 
 potential_targets <- reactive({
-  df <- combined() %>% filter(lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date),
-                              team %in% input$team)
-  unique(df$target)
+  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date),
+                              model_id %in% input$team)
+  unique(df$variable)
 })
 
 renderUI({
@@ -87,19 +87,19 @@ renderUI({
 
 
 team_date_forecast <-reactive({
-  combined() %>% filter(team %in% input$team,
-                        lubridate::as_date(forecast_start_time) == lubridate::as_date(input$date),
-                        target == input$target
+  combined() %>% filter(model_id %in% input$team,
+                        lubridate::as_date(start_time) == lubridate::as_date(input$date),
+                        variable == input$target
   )
 })
 
 potential_facets <- reactive({
   df <- team_date_forecast() %>% 
-    dplyr::select("site", "x", "y", "z") %>% 
+    dplyr::select("site_id", "x", "y", "z") %>% 
     mutate(x = as.character(x),
            y = as.character(y),
            z = as.character(z)) %>% 
-    pivot_longer(cols = c("site", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
+    pivot_longer(cols = c("site_id", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
     filter(!is.na(value))
   unique(df$variable)
 })
@@ -119,9 +119,9 @@ Forecast Plot
 target.plot <- reactive({
   
   team_date_forecast() %>% 
-    ggplot(aes(x = time, y = mean, color = team)) +
-    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = team, fill = team), alpha = 0.3) +
-    geom_line(aes(y = mean, color = team)) +
+    ggplot(aes(x = time, y = mean, color = model_id)) +
+    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = model_id, fill = model_id), alpha = 0.3) +
+    geom_line(aes(y = mean, color = model_id)) +
     geom_point(aes(y = observed), color = "black") +
     facet_wrap(input$facet) +
     labs(x = "time", y = input$target)
@@ -152,13 +152,13 @@ combined2 <- reactive({
   s3_2 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast2)
   ds2 <- arrow::open_dataset(s3_2, partitioning = c("year"))
   ds2 %>% filter(year > 2020L, 
-                          forecast_start_time > lubridate::as_date("2021-02-01")) %>%
+                          start_time > lubridate::as_date("2021-02-01")) %>%
   collect()
 })
 
 file.teams2 <- reactive({
     print(combined2())
-  unique(combined2()$team)
+  unique(combined2()$model_id)
 })
 
 renderUI({
@@ -167,9 +167,9 @@ renderUI({
 })
 
 potential_dates2 <- reactive({
-  df <- combined2() %>% filter(team == input$team2) %>% 
-    arrange(desc(forecast_start_time))
-  unique(df$forecast_start_time)
+  df <- combined2() %>% filter(model_id == input$team2)
+  df <-  unique(df$start_time)
+   sort(lubridate::as_date(df), decreasing = TRUE)
 })
 
 renderUI({
@@ -178,9 +178,9 @@ renderUI({
 })
 
 potential_targets2 <- reactive({
-  df <- combined2() %>% filter(lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
-                               team == input$team2)
-  unique(df$target)
+  df <- combined2() %>% filter(lubridate::as_date(start_time) %in% lubridate::as_date(input$date2),
+                               model_id == input$team2)
+  unique(df$variable)
 })
 
 renderUI({
@@ -190,19 +190,19 @@ renderUI({
 
 
 team_date_forecast2 <-reactive({
-  combined2() %>% filter(team == input$team2,
-                         lubridate::as_date(forecast_start_time) %in% lubridate::as_date(input$date2),
-                         target == input$target2
+  combined2() %>% filter(model_id == input$team2,
+                         lubridate::as_date(start_time) %in% lubridate::as_date(input$date2),
+                         variable == input$target2
   )
 })
 
  potential_facets2 <- reactive({
    df <- team_date_forecast2() %>% 
-     dplyr::select("site", "x", "y", "z") %>% 
+     dplyr::select("site_id", "x", "y", "z") %>% 
      mutate(x = as.character(x),
             y = as.character(y),
             z = as.character(z)) %>% 
-     pivot_longer(cols = c("site", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
+     pivot_longer(cols = c("site_id", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
      filter(!is.na(value))
    unique(df$variable)
  })
@@ -221,13 +221,13 @@ Forecast Plot
 target.plot2 <- reactive({
   
   team_date_forecast2() %>% 
-    mutate(forecast_start_time = factor(forecast_start_time)) %>% 
-    ggplot(aes(x = time, y = mean, color = forecast_start_time)) +
-    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = forecast_start_time, fill = forecast_start_time), alpha = 0.3) +
-    geom_line(aes(y = mean, color = forecast_start_time)) +
+    mutate(start_time = factor(start_time)) %>% 
+    ggplot(aes(x = time, y = mean, color = start_time)) +
+    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = start_time, fill = start_time), alpha = 0.3) +
+    geom_line(aes(y = mean, color = start_time)) +
     geom_point(aes(y = observed), color = "black") +
     #facet_wrap(input$facet2) +
-        facet_wrap(~site) +
+        facet_wrap(~site_id) +
 
     labs(x = "time", y = input$target2)
 })

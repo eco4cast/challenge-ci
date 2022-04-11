@@ -23,18 +23,18 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 # Here we go!
 errors <- 
-  c("aquatics",             ## 15.5s
-    "beetles",              ## 9.36s
-    "ticks",                ## 4.3m
-    "terrestrial_daily",    ## 9.2m
-    "terrestrial_30min",    ## 1.87hr (18m for csv.gz files)
-    "phenology") %>%        ## 34.8m (6.31m for csv)
-  purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+  c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
+    "terrestrial_30min", "phenology") %>%   
+  purrr::map(score_theme, s3_forecasts, s3_targets,
+             s3_scores, s3_prov, endpoint)
 
+
+## Check logs:
 failed_urls <- unlist(map(1:6, function(i)
   errors[[i]]$urls
 ))
-message(paste("some URLs failed to score:\n", paste(failed_urls, collapse="\n")))
+message(paste("some URLs failed to score:\n",
+              paste(failed_urls, collapse="\n")))
 
 
 ## Confirm we can access scores
@@ -46,7 +46,7 @@ ds %>% dplyr::count(theme) %>% dplyr::collect()
 combined <- ds %>% dplyr::collect() 
 combined %>% filter(theme == "phenology", issue_date == max(issue_date))
 
-
+## inspect most recent dates scored?
 ds %>% dplyr::group_by(theme) %>% 
   dplyr::summarize(max = max(start_time)) %>%
   dplyr::collect()
