@@ -1,7 +1,11 @@
+library(tidyverse)
+
 #remotes::install_deps()
 challenge_config <- yaml::read_yaml("challenge_config.yml")
 ## A place to store everything
-fs::dir_create("submissions")
+local_dir <- file.path(challenge_config$DATA_DIR, "submissions")
+unlink(local_dir, recursive = TRUE)
+fs::dir_create(local_dir)
 Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
            "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
 
@@ -10,10 +14,10 @@ message("Downloading forecasts ...")
 ## Note: s3sync stupidly also requires auth credentials even to download from public bucket
 
 #sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync("submissions", bucket= "submissions",  direction= "download", verbose= FALSE)
+aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE)
 #sink()
 
-submissions <- fs::dir_ls("submissions", recurse = TRUE, type = "file")
+submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
 
 themes <- names(challenge_config$themes)
 
@@ -21,8 +25,8 @@ themes <- names(challenge_config$themes)
 if(length(submissions) > 0){
   for(i in 1:length(submissions)){
     if(length(unlist(stringr::str_split(submissions[i], "/"))) == 3){
-      file.copy(submissions[i], file.path("submissions", basename(submissions[i])))
-      submissions[i] <- file.path("submissions", basename(submissions[i]))
+      file.copy(submissions[i], file.path(local_dir, basename(submissions[i])))
+      submissions[i] <- file.path(local_dir, basename(submissions[i]))
     }
     curr_submission <- basename(submissions[i])
     theme <-  stringr::str_split(curr_submission, "-")[[1]][1]
@@ -34,12 +38,12 @@ if(length(submissions) > 0){
     
     if((tools::file_ext(curr_submission) %in% c("nc", "gz", "csv", "xml")) & !is.na(submission_date)){
       
-      log_file <- paste0("submissions/",curr_submission,".log")
+      log_file <- paste0(local_dir, "/",curr_submission,".log")
       
       if(theme %in% themes & submission_date <= Sys.Date()){
         
         capture.output({
-          valid <- tryCatch(neon4cast::forecast_output_validator(file.path("submissions",curr_submission)),
+          valid <- tryCatch(neon4cast::forecast_output_validator(file.path(local_dir,curr_submission)),
                             error = function(e) FALSE, 
                             finally = NULL)
         }, file = log_file, type = c("message"))
@@ -48,7 +52,7 @@ if(length(submissions) > 0){
           
           # pivot forecast before transferring
           if(!grepl("[.]xml", curr_submission)){
-            fc <- read4cast::read_forecast(file.path("submissions", curr_submission))
+            fc <- read4cast::read_forecast(file.path(local_dir, curr_submission))
             df <- fc %>% 
               mutate(filename = basename(curr_submission)) %>% 
               score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
@@ -116,5 +120,5 @@ if(length(submissions) > 0){
     }
   }
 }
-unlink("submissions",recursive = TRUE)
+unlink(local_dir, recursive = TRUE)
 
