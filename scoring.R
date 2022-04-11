@@ -19,7 +19,7 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
-#errors <- score_theme("ticks", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+#errors <- score_theme("phenology", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
 
 # Here we go!
 errors <- 
@@ -42,9 +42,6 @@ s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
 
-# filtering by theme or year before collect will be fast too!
-combined <- ds %>% dplyr::collect() 
-combined %>% filter(theme == "phenology", issue_date == max(issue_date))
 
 ## inspect most recent dates scored?
 ds %>% dplyr::group_by(theme) %>% 
