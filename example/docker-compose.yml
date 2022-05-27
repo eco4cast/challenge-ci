@@ -1,0 +1,21 @@
+version: '2.3'
+
+services:
+  minio: 
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+        - 9000:9000
+        - 9001:9001
+    restart: always
+    env_file: passwords.txt
+
+  rstudio:
+    build: 
+      context: . 
+    image: eco4cast/cron
+    restart: always
+    env_file: passwords.txt 
+    ports:
+      - 8787:8787
+
