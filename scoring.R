@@ -1,11 +1,11 @@
 # remotes::install_deps()
+readRenviron("/home/rstudio/.Renviron")
 library(score4cast)
 library(arrow)
 library(purrr)
+
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
-#Sys.unsetenv("AWS_ACCESS_KEY_ID")
-#Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 
 
@@ -19,7 +19,7 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
-#errors <- score_theme("phenology", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+#errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
 
 # Here we go!
 errors <- 
