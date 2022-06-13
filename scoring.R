@@ -23,12 +23,13 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 # Here we go!
 errors <- 
-  c("aquatics",             ## 15.5s
-    "beetles",              ## 9.36s
-    "ticks",                ## 4.3m
-    "terrestrial_daily",    ## 9.2m
-    "terrestrial_30min",    ## 1.87hr (18m for csv.gz files)
-    "phenology") %>%        ## 34.8m (6.31m for csv)
+  c(
+  #  "aquatics",
+  #  "beetles",
+  #  "ticks", 
+  #  "terrestrial_daily", 
+    "terrestrial_30min",
+    "phenology") %>%
   purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
 
 failed_urls <- unlist(map(1:6, function(i)
@@ -38,14 +39,11 @@ message(paste("some URLs failed to score:\n", paste(failed_urls, collapse="\n"))
 
 
 ## Confirm we can access scores
+library(dplyr)
+
 s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
-
-# filtering by theme or year before collect will be fast too!
-combined <- ds %>% dplyr::collect() 
-combined %>% filter(theme == "phenology", issue_date == max(issue_date))
-
 
 ds %>% dplyr::group_by(theme) %>% 
   dplyr::summarize(max = max(start_time)) %>%
