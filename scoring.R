@@ -1,11 +1,11 @@
 # remotes::install_deps()
+readRenviron("/home/rstudio/.Renviron")
 library(score4cast)
 library(arrow)
 library(purrr)
+
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
-#Sys.unsetenv("AWS_ACCESS_KEY_ID")
-#Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 
 
@@ -19,23 +19,22 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
-#errors <- score_theme("ticks", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+#errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
 
 # Here we go!
 errors <- 
-  c(
-  #  "aquatics",
-  #  "beetles",
-  #  "ticks", 
-  #  "terrestrial_daily", 
-    "terrestrial_30min",
-    "phenology") %>%
-  purrr::map(score_theme, s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+  c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
+    "terrestrial_30min", "phenology") %>%   
+  purrr::map(score_theme, s3_forecasts, s3_targets,
+             s3_scores, s3_prov, endpoint)
 
+
+## Check logs:
 failed_urls <- unlist(map(1:6, function(i)
-errors[[i]]$urls
+  errors[[i]]$urls
 ))
-message(paste("some URLs failed to score:\n", paste(failed_urls, collapse="\n")))
+message(paste("some URLs failed to score:\n",
+              paste(failed_urls, collapse="\n")))
 
 
 ## Confirm we can access scores
@@ -45,6 +44,11 @@ s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
 
+<<<<<<< HEAD
+=======
+
+## inspect most recent dates scored?
+>>>>>>> 5023675a3286c617ef75573d28201091d212a11c
 ds %>% dplyr::group_by(theme) %>% 
   dplyr::summarize(max = max(start_time)) %>%
   dplyr::collect()
