@@ -95,11 +95,8 @@ team_date_forecast <-reactive({
 
 potential_facets <- reactive({
   df <- team_date_forecast() %>% 
-    dplyr::select("site_id", "x", "y", "z") %>% 
-    mutate(x = as.character(x),
-           y = as.character(y),
-           z = as.character(z)) %>% 
-    pivot_longer(cols = c("site_id", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
+    dplyr::select("site_id") %>% 
+    pivot_longer(cols = c("site_id"), names_to = "variable", values_to = "value") %>% 
     filter(!is.na(value))
   unique(df$variable)
 })
@@ -198,11 +195,8 @@ team_date_forecast2 <-reactive({
 
  potential_facets2 <- reactive({
    df <- team_date_forecast2() %>% 
-     dplyr::select("site_id", "x", "y", "z") %>% 
-     mutate(x = as.character(x),
-            y = as.character(y),
-            z = as.character(z)) %>% 
-     pivot_longer(cols = c("site_id", "x", "y", "z"), names_to = "variable", values_to = "value") %>% 
+     dplyr::select("site_id") %>% 
+     pivot_longer(cols = c("site_id"), names_to = "variable", values_to = "value") %>% 
      filter(!is.na(value))
    unique(df$variable)
  })

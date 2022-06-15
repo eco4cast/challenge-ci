@@ -1,11 +1,15 @@
 # remotes::install_deps()
+readRenviron("/home/rstudio/.Renviron")
 library(score4cast)
 library(arrow)
 library(purrr)
 
+<<<<<<< HEAD
 
 
 readRenviron("/home/rstudio/.Renviron")
+=======
+>>>>>>> 1f43063aefac3fceef3581826a40ba79a2ec9d88
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
@@ -20,7 +24,11 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
+<<<<<<< HEAD
 # errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+=======
+#errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+>>>>>>> 1f43063aefac3fceef3581826a40ba79a2ec9d88
 
 # Here we go!
 errors <- 
@@ -39,15 +47,13 @@ message(paste("some URLs failed to score:\n",
 
 
 ## Confirm we can access scores
+library(dplyr)
+
 s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
 
-# filtering by theme or year before collect will be fast too!
-combined <- ds %>% dplyr::collect() 
-combined %>% filter(theme == "phenology", issue_date == max(issue_date))
 
-## inspect most recent dates scored?
 ds %>% dplyr::group_by(theme) %>% 
   dplyr::summarize(max = max(start_time)) %>%
   dplyr::collect()
