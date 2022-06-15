@@ -44,11 +44,7 @@ s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
 
-<<<<<<< HEAD
-=======
 
-## inspect most recent dates scored?
->>>>>>> 5023675a3286c617ef75573d28201091d212a11c
 ds %>% dplyr::group_by(theme) %>% 
   dplyr::summarize(max = max(start_time)) %>%
   dplyr::collect()
