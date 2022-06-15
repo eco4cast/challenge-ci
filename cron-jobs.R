@@ -2,8 +2,8 @@
 #remotes::install_deps()
 library(cronR)
 
-home_dir <- "/home/rstudio/Documents/scripts"
-log_dir <- "/efi_neon_challenge/log/cron"
+home_dir <-  path.expand("~/.")
+log_dir <- path.expand("~/log/cron")
 
 noaa_download_repo <- "neon4cast-noaa-download"
 aquatic_repo <- "neon4cast-aquatics"

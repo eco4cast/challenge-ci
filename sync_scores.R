@@ -14,6 +14,6 @@ library(arrow)
 s3 <- s3_bucket("scores/parquet", endpoint_override="data.ecoforecast.org")
 all_scores <- open_dataset(s3, partitioning = c("target_id", "year"))
 write_dataset(all_scores,
-              "/efi_neon_challenge/local/scores/parquet", 
+              "home/rstudio/scores/parquet", 
               partitioning = c("target_id", "year"),
               hive_style = FALSE)

@@ -1,6 +1,6 @@
 AWS_DEFAULT_REGION: data
 AWS_S3_ENDPOINT: ecoforecast.org
-DATA_DIR: "/efi_neon_challenge"
+DATA_DIR: "/home/rstudio"
 endpoint_override: data.ecoforecast.org
 themes:
   phenology:
