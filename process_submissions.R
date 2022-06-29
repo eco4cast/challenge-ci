@@ -17,7 +17,7 @@ message("Downloading forecasts ...")
 ## Note: s3sync stupidly also requires auth credentials even to download from public bucket
 
 #sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE, region="")
+aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE, region=region)
 #sink()
 
 submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
