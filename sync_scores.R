@@ -1,22 +1,20 @@
 message("Starting score sync")
 message(Sys.time())
 
-#Sys.setenv("AWS_DEFAULT_REGION"="data")
-#Sys.setenv("AWS_S3_ENDPOINT"="ecoforecast.org")
-#aws.s3::s3sync("/efi_neon_challenge/local/",bucket = "scores", direction = "download")
-
-
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 Sys.unsetenv("AWS_ACCESS_KEY_ID")
 Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 
+challenge_config <- yaml::read_yaml("challenge_config.yml")
+
+
 library(arrow)
-s3 <- s3_bucket("scores/parquet", endpoint_override="data.ecoforecast.org")
+s3 <- s3_bucket("scores/parquet", endpoint_override=challenge_config$endpoint_override)
 all_scores <- open_dataset(s3, partitioning = c("target_id", "year"))
 write_dataset(all_scores,
-              "home/rstudio/scores/parquet", 
+              paste0(challenge_config$DATA_DIR, "scores/parquet"), 
               partitioning = c("target_id", "year"),
               hive_style = FALSE)
 

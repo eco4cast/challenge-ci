@@ -1,15 +1,9 @@
 # remotes::install_deps()
-readRenviron("/home/rstudio/.Renviron")
 library(score4cast)
 library(arrow)
 library(purrr)
 
-<<<<<<< HEAD
-
-
 readRenviron("/home/rstudio/.Renviron")
-=======
->>>>>>> 1f43063aefac3fceef3581826a40ba79a2ec9d88
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
@@ -24,11 +18,8 @@ s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
 
 
 ## a single score
-<<<<<<< HEAD
-# errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
-=======
 #errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
->>>>>>> 1f43063aefac3fceef3581826a40ba79a2ec9d88
+
 
 # Here we go!
 errors <- 
