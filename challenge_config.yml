@@ -1,5 +1,5 @@
-AWS_DEFAULT_REGION: ""
-AWS_S3_ENDPOINT: "js2.jetstream-cloud.org:8001"
+AWS_DEFAULT_REGION: "js2"
+AWS_S3_ENDPOINT: "jetstream-cloud.org:8001"
 DATA_DIR: "/home/rstudio/data"
 endpoint_override: "js2.jetstream-cloud.org:8001"
 themes:
