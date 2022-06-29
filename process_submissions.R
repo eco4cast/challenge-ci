@@ -6,6 +6,9 @@ challenge_config <- yaml::read_yaml("challenge_config.yml")
 local_dir <- file.path(challenge_config$DATA_DIR, "submissions")
 unlink(local_dir, recursive = TRUE)
 fs::dir_create(local_dir)
+
+# cannot  set region="" using environmental variables!!
+region=challenge_config$AWS_DEFAULT_REGION
 Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
            "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
 
@@ -14,7 +17,7 @@ message("Downloading forecasts ...")
 ## Note: s3sync stupidly also requires auth credentials even to download from public bucket
 
 #sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE)
+aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE, region="")
 #sink()
 
 submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
@@ -61,54 +64,55 @@ if(length(submissions) > 0){
             readr::write_csv(df, tmp)
             # Then copy the original to the archives subdir
             aws.s3::put_object(file = tmp, 
-                               object = paste0("s3://forecasts/", theme,"/",pivoted_fc))
+                               object = paste0("s3://forecasts/", theme,"/",pivoted_fc), region=region)
             unlink(tmp) 
           }
           
           aws.s3::copy_object(from_object = curr_submission, 
                               from_bucket = "submissions", 
                               to_object = paste0("raw/", theme,"/",curr_submission), 
-                              to_bucket = "forecasts")
-          if(aws.s3::object_exists(object = paste0(theme,"/",pivoted_fc), bucket = "forecasts")){
+                              to_bucket = "forecasts",
+                              region=region)
+          if(aws.s3::object_exists(object = paste0(theme,"/",pivoted_fc), bucket = "forecasts", region=region)){
             print("delete")
-            aws.s3::delete_object(object = curr_submission, bucket = "submissions")
+            aws.s3::delete_object(object = curr_submission, bucket = "submissions", region=region)
           }
         } else { 
           aws.s3::copy_object(from_object = curr_submission, 
                               to_object = paste0("not_in_standard/",curr_submission), 
                               from_bucket = "submissions", 
-                              to_bucket = "forecasts")
-          if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts")){
+                              to_bucket = "forecasts", region=region)
+          if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts", region=region)){
             print("delete")
-            aws.s3::delete_object(object = curr_submission, bucket = "submissions")
+            aws.s3::delete_object(object = curr_submission, bucket = "submissions", region=region)
           }
           
           aws.s3::put_object(file = log_file, 
                              object = paste0("not_in_standard/", 
                                              basename(log_file)), 
-                             bucket = "forecasts")
+                             bucket = "forecasts", region=region)
         }
       } else if(!(theme %in% themes)){
         aws.s3::copy_object(from_object = curr_submission, 
                             to_object = paste0("not_in_standard/",curr_submission), 
                             from_bucket = "submissions",
-                            to_bucket = "forecasts")
+                            to_bucket = "forecasts", region=region)
         capture.output({
           message(curr_submission)
           message("incorrect theme name in filename")
           message("Options are: ", paste(themes, collapse = " "))
         }, file = log_file, type = c("message"))
         
-        if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts")){
+        if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts", region=region)){
           print("delete")
           aws.s3::delete_object(object = curr_submission,
-                                bucket = "submissions")
+                                bucket = "submissions", region=region)
         }
         
         aws.s3::put_object(file = log_file,
                            object = paste0("not_in_standard/", 
                                            basename(log_file)), 
-                           bucket = "forecasts")
+                           bucket = "forecasts", region=region)
       }else{
         #Don't do anything because the date hasn't occur yet
       }
@@ -116,7 +120,7 @@ if(length(submissions) > 0){
       aws.s3::copy_object(from_object = curr_submission, 
                           to_object = paste0("not_in_standard/",curr_submission), 
                           from_bucket = "submissions",
-                          to_bucket = "forecasts")
+                          to_bucket = "forecasts", region=region)
     }
   }
 }
