@@ -26,6 +26,18 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "pro
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/dad902ab-4847-4303-bd61-c27de2a1b43a")
 cronR::cron_add(command = cmd, frequency = 'hourly', id = 'process_submissions')
 
+
+## GEFS arrow 
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "gefs4cast-snapshot.R"),
+                           rscript_log = file.path(log_dir, "gefs4cast-snapshot.log"),
+                           log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/2d9f4d2f-b572-4a95-9346-bd482d4c3b31"
+                           )
+cronR::cron_add(command = cmd, frequency = 'daily', at = "6 am", id = 'gefs4cast')
+
+
 ## Scoring 
 
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "scoring.R"),
