@@ -13,7 +13,7 @@ publish <- function(data_in = NULL,
   objects <- paste0(prefix, basename(files))
   
   lapply(seq_along(files), function(i) 
-    aws.s3::put_object(files[[i]], object=objects[[i]], bucket=bucket)
+    aws.s3::put_object(file = files[[i]], object=objects[[i]], bucket=bucket)
   )
   
   

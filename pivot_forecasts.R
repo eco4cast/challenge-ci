@@ -22,7 +22,7 @@ processed <- function(x, s3) {
 }
 
 pivot_all_forecasts <- function(theme = "phenology",
-                                bucket = "forecasts",
+                                bucket = "neon4cast-forecasts",
                                 endpoint = "data.ecoforecast.org") {
   s3 <- arrow::s3_bucket(bucket, endpoint_override = endpoint)
   files <- s3$ls(theme)

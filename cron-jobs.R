@@ -2,7 +2,7 @@
 #remotes::install_deps()
 library(cronR)
 
-home_dir <-  path.expand("~/.")
+home_dir <-  path.expand("~")
 log_dir <- path.expand("~/log/cron")
 
 noaa_download_repo <- "neon4cast-noaa-download"
@@ -17,8 +17,18 @@ challange_ci_repo <- "challenge-ci"
 scoring_repo <- "neon4cast-scoring"
 submissions_repo <- "neon4cast-submissions"
 
-## Processing Submissions
 
+## NEON import/export
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "neonstore.R"),
+                           rscript_log = file.path(log_dir, "neonstore.log"),
+                           log_append = FALSE,
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/a658b77a-bae9-4908-8f06-3603e1b5ff3f")
+cronR::cron_add(command = cmd, frequency = 'daily', at = "2 am", id = 'neonstore')
+
+
+
+## Processing Submissions
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "process_submissions.R"),
                            rscript_log = file.path(log_dir, "process_submissions.log"),
                            log_append = FALSE,
@@ -35,7 +45,25 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "gef
                            workdir = file.path(home_dir, challange_ci_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/2d9f4d2f-b572-4a95-9346-bd482d4c3b31"
                            )
-cronR::cron_add(command = cmd, frequency = 'daily', at = "6 am", id = 'gefs4cast')
+cronR::cron_add(command = cmd, frequency = '0 */4 * * *', id = 'gefs4cast')
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "gefs4cast-stage2.R"),
+                           rscript_log = file.path(log_dir, "gefs4cast_stage2.log"),
+                           log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/99e26eaa-9c54-483c-8110-36b5478e2352"
+)
+cronR::cron_add(command = cmd, frequency = 'daily', at = "2 pm", id = 'gefs4cast-stage2')
+
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "gefs4cast-stage3.R"),
+                           rscript_log = file.path(log_dir, "gefs4cast_stage3.log"),
+                           log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/5f92ac9f-dc35-4eb6-af98-cc8afc4d69d0"
+)
+cronR::cron_add(command = cmd, frequency = 'daily', at = "11 am", id = 'gefs4cast-stage3')
 
 
 ## Scoring 
@@ -47,45 +75,6 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "sco
                            workdir = file.path(home_dir, challange_ci_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/1dd67f13-3a08-4a2b-86a3-6f13ab36baca")
 cronR::cron_add(command = cmd, frequency = 'daily', at = "11 am", id = 'scoring')
-
-### Optional additions
-
-## NOAA Download
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "download_gefs_grid.R"),
-                    rscript_log = file.path(log_dir, "noaa-download.log"),
-                    log_append = FALSE,
-                    workdir = file.path(home_dir, noaa_download_repo),
-                    trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/2889eaa2-cb7a-4e3b-b76e-b034e340295f")
-cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_gefs_download')
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "download_cfs_grid.R"),
-                           rscript_log = file.path(log_dir, "noaacfs-download.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, noaa_download_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bccdd589-2c8d-49cc-8404-033d6c8ed12a")
-cronR::cron_add(command = cmd, frequency = '0 */3 * * *', id = 'noaa_cfs_download')
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "process_gefs_grid.R"),
-                           rscript_log = file.path(log_dir, "noaa_gefs_process.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, noaa_download_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/bb342112-d500-4b00-8410-bf8e78c47851")
-cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_gefs_process.log')
-
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "process_cfs_grid.R"),
-                           rscript_log = file.path(log_dir, "noaa_cfs_process.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, noaa_download_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/037c43ec-4c47-4e4d-952d-71f3df80cb3c")
-cronR::cron_add(command = cmd, frequency = '0 */2 * * *', id = 'noaa_cfs_process.log')
-
-## 
-cmd <- cronR::cron_rscript(rscript = file.path(home_dir, noaa_download_repo, "run_stack_noaa.R"),
-                           rscript_log = file.path(log_dir, "noaa-stack.log"),
-                           log_append = FALSE,
-                           workdir = file.path(home_dir, noaa_download_repo),
-                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/b2122302-6996-4a08-ab1c-f7f29d04e160")
-cronR::cron_add(command = cmd, frequency = 'daily', at = "4AM", id = 'noaa_stack')
 
 ## Phenocam Download and Target Generation
 

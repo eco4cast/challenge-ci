@@ -46,7 +46,7 @@ renderUI({
 
 combined <- reactive({
   
-  s3 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast)
+  s3 <- paste0(challenge_config$DATA_DIR, "scores/parquet/",input$forecast)
   ds <- arrow::open_dataset(s3, partitioning = c("year"))
   ds %>% filter(year > 2020L, 
                           start_time > lubridate::as_date("2021-02-01")) %>%
@@ -145,8 +145,7 @@ renderUI({
 })
 
 combined2 <- reactive({
-
-  s3_2 <- paste0("/efi_neon_challenge/local/scores/parquet/",input$forecast2)
+  s3_2 <- paste0(challenge_config$DATA_DIR, "scores/parquet/",input$forecast)
   ds2 <- arrow::open_dataset(s3_2, partitioning = c("year"))
   ds2 %>% filter(year > 2020L, 
                           start_time > lubridate::as_date("2021-02-01")) %>%

@@ -4,7 +4,7 @@ library(lubridate)
 
 partition_targets <- function(theme, s3) {
   
-  df <- readr::read_csv(glue::glue("https://data.ecoforecast.org/targets/{theme}/{theme}-targets.csv.gz", theme=theme),
+  df <- readr::read_csv(glue::glue("https://data.ecoforecast.org/neon4cast-targets/{theme}/{theme}-targets.csv.gz", theme=theme),
                         show_col_types = FALSE)
   
   TARGET_VARS <- c("oxygen", 
@@ -32,7 +32,7 @@ endpoint = "data.ecoforecast.org"
 
 endpoint = "minio.carlboettiger.info"
 
-s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
+s3_targets <- arrow::s3_bucket("neon4cast-targets", endpoint_override = endpoint)
 themes <- c("aquatics", "beetles",  "ticks",  "terrestrial_daily",
             "terrestrial_30min",  "phenology")
 

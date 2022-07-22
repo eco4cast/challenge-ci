@@ -1,7 +1,7 @@
-AWS_DEFAULT_REGION: "js2"
-AWS_S3_ENDPOINT: "jetstream-cloud.org:8001"
+AWS_DEFAULT_REGION: "data"
+AWS_S3_ENDPOINT: "ecoforecast.org"
 DATA_DIR: "/home/rstudio/data"
-endpoint_override: "js2.jetstream-cloud.org:8001"
+endpoint_override: "data.ecoforecast.org"
 themes:
   phenology:
     targets: 

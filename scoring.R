@@ -10,11 +10,11 @@ Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 
 ## we simply establish connections to our buckets and away we go:
 endpoint = "data.ecoforecast.org"
-s3_forecasts <- arrow::s3_bucket("forecasts", endpoint_override = endpoint)
-s3_targets <- arrow::s3_bucket("targets", endpoint_override = endpoint)
+s3_forecasts <- arrow::s3_bucket("neon4cast-forecasts", endpoint_override = endpoint)
+s3_targets <- arrow::s3_bucket("neon4cast-targets", endpoint_override = endpoint)
 ## Publishing Requires AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY set
-s3_scores <- arrow::s3_bucket("scores", endpoint_override = endpoint)
-s3_prov <- arrow::s3_bucket("prov", endpoint_override = endpoint)
+s3_scores <- arrow::s3_bucket("neon4cast-scores", endpoint_override = endpoint)
+s3_prov <- arrow::s3_bucket("neon4cast-prov", endpoint_override = endpoint)
 
 
 ## a single score
@@ -40,7 +40,7 @@ message(paste("some URLs failed to score:\n",
 ## Confirm we can access scores
 library(dplyr)
 
-s3 <- arrow::s3_bucket("scores/parquet", endpoint_override = endpoint)
+s3 <- arrow::s3_bucket("neon4cast-scores/parquet", endpoint_override = endpoint)
 ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
 ds %>% dplyr::count(theme) %>% dplyr::collect()
 
