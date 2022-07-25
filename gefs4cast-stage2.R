@@ -6,7 +6,7 @@ library(ggplot2)
 library(gefs4cast)
 readRenviron("~/.Renviron")
 
-print(paste0("Start: ",Sys.time()))
+message(paste0("Start: ",Sys.time()))
 
 source(system.file("examples", "temporal_disaggregation.R", package = "gefs4cast"))
 
@@ -97,7 +97,7 @@ files_present <- purrr::map_int(1:nrow(forecast_start_times), function(i, foreca
   if(forecast_start_times$date[i] %in% s3_stage2_parquet$ls()){
     if(forecast_start_times$dir[i] %in% s3_stage2_parquet$ls(forecast_start_times$date[i])){
       exiting_files <- length(s3_stage2_parquet$ls(forecast_start_times$dir[i]))
-      if(forecast_start_times$horizon[i] < 840 & forecast_start_times$cycle[i] == "00"){
+      if((forecast_start_times$horizon[i] < 840 | is.na(forecast_start_times$horizon[i])) & forecast_start_times$cycle[i] == "00"){
         exiting_files <- NA
       }
       if(generate_netcdf){
@@ -137,7 +137,7 @@ if(nrow(forecast_start_times) > 0){
               function(i, forecast_start_times, df, model_name, base_dir){
                 
                 s3_stage2_parquet$CreateDir(forecast_start_times$dir[i])
-                
+                message(paste0("Processing ", forecast_start_times$date[i]," ", forecast_start_times$cycle[i]))
                 d1 <- df |> 
                   dplyr::filter(start_date == as.character(forecast_start_times$date[i]),
                                 variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
@@ -194,4 +194,4 @@ if(nrow(forecast_start_times) > 0){
   )
 }
 
-print(paste0("End: ",Sys.time()))
+message(paste0("End: ",Sys.time()))

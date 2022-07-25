@@ -78,6 +78,8 @@ purrr::walk(sites, function(site, base_dir){
       disaggregate_fluxes() |>  
       add_horizon0_time() |> 
       convert_precip2rate() |>
+      convert_temp2kelvin() |> 
+      convert_rh2proportion() |> 
       filter(horizon < 6) |> 
       mutate(start_time = min(start_time)) |> 
       disaggregate2hourly() |>

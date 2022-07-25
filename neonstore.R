@@ -6,7 +6,7 @@ readRenviron("~/.Renviron") # compatible with littler
 Sys.setenv("NEONSTORE_HOME" = "/home/rstudio/data/neonstore")
 Sys.getenv("NEONSTORE_DB")
 
-# aquatics
+message("aquatics targets")
 sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20210928.csv")
 aq_sites <- sites$field_site_id
 neonstore::neon_download("DP1.20288.001", site = aq_sites) # water quality
@@ -16,18 +16,18 @@ neonstore::neon_store(table = "waq_instantaneous", n = 50)
 neonstore::neon_store(table = "TSD_30_min")
 neonstore::neon_store(table = "TSW_30min")
 
-# beetles
+message("beetles targets")
 neonstore::neon_download(product="DP1.10022.001", type = "expanded")
 neonstore::neon_store(product = "DP1.10022.001")
 
-## Terrestrial
+message("Terrestrial targets")
 sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-terrestrial/master/Terrestrial_NEON_Field_Site_Metadata_20210928.csv")
 ter_sites <- sites$field_site_id
 print("Downloading: DP4.00200.001")
 neonstore::neon_download(product = "DP4.00200.001", site = ter_sites, type = "basic")
 neonstore::neon_store(product = "DP4.00200.001") 
 
-#  Ticks
+message("Ticks targets")
 product <- "DP1.10093.001"
 sites.df <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-ticks/master/Ticks_NEON_Field_Site_Metadata_20210928.csv")
 tick_sites <- sites.df %>% pull(field_site_id)
@@ -35,7 +35,7 @@ neon_download(product = product, site = tick_sites)
 neonstore::neon_store(product =  "DP1.10093.001") 
 
 
-# Terrestrial covariates
+message("Terrestrial covariates")
 
 neon_download(product = "DP1.00006.001", site = ter_sites, table = "THRPRE_30min-basic") # Precip, thoughfall
 neon_download(product = "DP1.00098.001", site = ter_sites, table = "RH_30min") # Humidity, note two different sensor positions
@@ -54,7 +54,7 @@ neon_store(product = "DP1.00006.001", table = "SECPRE_30min-basic") # Precipitat
 neon_store(product = "DP1.00100.001") #empty?
 
 
-# Aquatic covariates:
+message("Aquatic covariates:")
 neon_download(product = "DP1.20059.001", site = aq_sites) # Wind Speed
 neon_download(product = "DP1.20004.001", site = aq_sites) # pressure
 neon_download(product = "DP1.20046.001", site = aq_sites) # temperature
@@ -73,17 +73,17 @@ neon_store(product = "DP1.20016.001") # Elevation of surface water
 neon_store(product = "DP1.20217.001") # Groundwater temperature
 neon_store(product = "DP1.20033.001") # Nitrate
 
-# Shared meteorology (all sites, slow!)
+message("meteorology (all sites, slow!)")
 neon_download(product = "DP4.00001.001") # Summary weather
 neon_download("DP1.00003.001", table = "TAAT_30min") # Temp
 neon_download("DP1.00006.001", table = c("THRPRE_30min","SECPRE_30min", "PRIPRE_30min")) # Precipitation (terrestrial sites)
 neon_download("DP1.00098.001", table = "RH_30min") # Humidity (includes temp)
 neon_store(product = "DP4.00001.001") # Summary weather
-neon_store("DP1.00003.001") # Temp
-neon_store("DP1.00006.001") # Precipitation (terrestrial sites)
-neon_store("DP1.00098.001") # Humidity (includes temp)
+neon_store(product = "DP1.00003.001") # Temp
+neon_store(product = "DP1.00006.001") # Precipitation (terrestrial sites)
+neon_store(product = "DP1.00098.001") # Humidity (includes temp)
 
-
+message("export to parquet")
 fs::dir_create("/home/rstudio/neon4cast-neonstore")
 neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore")
 s3 <- arrow::s3_bucket("neon4cast-targets/neon", endpoint_override = "data.ecoforecast.org")

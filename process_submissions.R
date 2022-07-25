@@ -56,15 +56,23 @@ if(length(submissions) > 0){
           # pivot forecast before transferring
           if(!grepl("[.]xml", curr_submission)){
             fc <- read4cast::read_forecast(file.path(local_dir, curr_submission))
-            df <- fc %>% 
-              mutate(filename = basename(curr_submission)) %>% 
-              score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
-            pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
-            tmp <- file.path(tempdir(), pivoted_fc) 
-            readr::write_csv(df, tmp)
+            if("variable" %in% names(fc)){
+              df <- fc
+              pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
+              tmp <- file.path(tempdir(), pivoted_fc) 
+              readr::write_csv(df, tmp)
+            }else{
+              df <- fc %>% 
+                mutate(filename = basename(curr_submission)) %>% 
+                score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
+              pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
+              tmp <- file.path(tempdir(), pivoted_fc) 
+              readr::write_csv(df, tmp)
+            }
+            
             # Then copy the original to the archives subdir
             aws.s3::put_object(file = tmp, 
-                               object = paste0("s3://forecasts/", theme,"/",pivoted_fc), region=region)
+                               object = paste0("s3://neon4cast-forecasts/", theme,"/",pivoted_fc), region=region)
             unlink(tmp) 
           }
           
