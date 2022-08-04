@@ -22,9 +22,18 @@ submissions_repo <- "neon4cast-submissions"
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "neonstore.R"),
                            rscript_log = file.path(log_dir, "neonstore.log"),
                            log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
                            workdir = file.path(home_dir, challange_ci_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/a658b77a-bae9-4908-8f06-3603e1b5ff3f")
 cronR::cron_add(command = cmd, frequency = 'daily', at = "2 am", id = 'neonstore')
+## NEON import/export
+cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "neonstore-covariates.R"),
+                           rscript_log = file.path(log_dir, "neonstore-covariates.log"),
+                           log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/94bc7dee-f7db-46c2-8dd2-c5d7004b3425")
+cronR::cron_add(command = cmd, frequency = 'daily', at = "2 pm", id = 'neonstore-covariates')
 
 
 
@@ -108,6 +117,7 @@ cronR::cron_add(command = cmd, frequency = 'daily', at = "8AM", id = 'beetles-wo
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, terrestrial_repo,"02_terrestrial_targets.R"),
                            rscript_log = file.path(log_dir, "terrestrial-targets.log"),
                            log_append = FALSE,
+                           cmd = "/usr/local/bin/r", # use litter, more robust on CLI
                            workdir = file.path(home_dir, terrestrial_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/c1fb635f-95f8-4ba2-a348-98924548106c")
 cronR::cron_add(command = cmd, frequency = 'daily', at = "9AM", id = 'terrestrial-targets')

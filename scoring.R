@@ -18,7 +18,7 @@ s3_prov <- arrow::s3_bucket("neon4cast-prov", endpoint_override = endpoint)
 
 
 ## a single score
-#errors <- score_theme("beetles", s3_forecasts, s3_targets, s3_scores, s3_prov, endpoint)
+#errors <- score_theme("aquatics", s3_forecasts, s3_targets, s3_scores, s3_prov, after = as.Date("2022-01-01"))
 
 
 # Here we go!
@@ -26,25 +26,28 @@ errors <-
   c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
     "terrestrial_30min", "phenology") %>%   
   purrr::map(score_theme, s3_forecasts, s3_targets,
-             s3_scores, s3_prov, endpoint)
+             s3_scores, s3_prov, after = as.Date("2022-01-01"))
+
 
 
 ## Check logs:
-failed_urls <- unlist(map(1:6, function(i)
-  errors[[i]]$urls
-))
-message(paste("some URLs failed to score:\n",
-              paste(failed_urls, collapse="\n")))
+failed_urls <- unlist(map(1:6, function(i) errors[[i]]$urls))
+if(length(failed_urls) > 0){
+  message(paste("some forecasts failed to score:\n",
+                paste(failed_urls, collapse="\n")))
+} else {
+  message("successfully scored all forecasts")
+}
+
 
 
 ## Confirm we can access scores
-library(dplyr)
+#library(dplyr)
 
-s3 <- arrow::s3_bucket("neon4cast-scores/parquet", endpoint_override = endpoint)
-ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
-ds %>% dplyr::count(theme) %>% dplyr::collect()
-
-
-ds %>% dplyr::group_by(theme) %>% 
-  dplyr::summarize(max = max(start_time)) %>%
-  dplyr::collect()
+#s3 <- arrow::s3_bucket("neon4cast-scores/parquet", endpoint_override = endpoint)
+#ds <- arrow::open_dataset(s3, partitioning = c("theme", "year"))
+#ds %>% dplyr::count(theme) %>% dplyr::collect()
+#
+#ds %>% dplyr::group_by(theme) %>% 
+#  dplyr::summarize(max = max(start_time)) %>%
+#  dplyr::collect()

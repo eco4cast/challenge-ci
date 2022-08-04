@@ -46,7 +46,7 @@ renderUI({
 
 combined <- reactive({
   
-  s3 <- paste0(challenge_config$DATA_DIR, "scores/parquet/",input$forecast)
+  s3 <- paste0(challenge_config$DATA_DIR, "/neon4cast-scores/parquet/",input$forecast)
   ds <- arrow::open_dataset(s3, partitioning = c("year"))
   ds %>% filter(year > 2020L, 
                           start_time > lubridate::as_date("2021-02-01")) %>%

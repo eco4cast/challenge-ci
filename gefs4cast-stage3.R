@@ -49,6 +49,7 @@ sites <- df |>
   pull(site_id)
 
 purrr::walk(sites, function(site, base_dir){
+  message(site)
   fname <- paste0("stage3-",site,".parquet")
   if(site %in% s3_stage3_parquet$ls()){
     d <- arrow::read_parquet(s3_stage3_parquet$path(file.path(site, fname))) %>% 

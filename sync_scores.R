@@ -14,7 +14,7 @@ library(arrow)
 s3 <- s3_bucket("neon4cast-scores/parquet", endpoint_override=challenge_config$endpoint_override)
 all_scores <- open_dataset(s3, partitioning = c("target_id", "year"))
 write_dataset(all_scores,
-              paste0(challenge_config$DATA_DIR, "neon4cast-scores/parquet"), 
+              file.path(challenge_config$DATA_DIR, "neon4cast-scores/parquet"), 
               partitioning = c("target_id", "year"),
               hive_style = FALSE)
 
