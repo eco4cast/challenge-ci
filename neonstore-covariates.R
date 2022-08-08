@@ -4,15 +4,16 @@ library(neonstore)
 library(tidyverse)
 readRenviron("~/.Renviron") # compatible with littler
 Sys.setenv("NEONSTORE_HOME" = "/home/rstudio/data/neonstore")
-Sys.getenv("NEONSTORE_DB")
 
-sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20210928.csv")
+sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20220727.csv")
 aq_sites <- sites$field_site_id
 sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-terrestrial/master/Terrestrial_NEON_Field_Site_Metadata_20210928.csv")
 ter_sites <- sites$field_site_id
 sites.df <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-ticks/master/Ticks_NEON_Field_Site_Metadata_20210928.csv")
 tick_sites <- sites.df %>% pull(field_site_id)
 
+
+## Use explicit table names to avoid downloading 1min / 2min or 5min versions of tables
 
 message("Meterological covariates") # 
 neon_download(product = "DP1.00006.001", table = "THRPRE_30min") # Precip, thoughfall
@@ -34,30 +35,40 @@ neon_store(product = "DP4.00001.001") # Summary weather
 
 
 message("Aquatic covariates:")
-neon_download(product = "DP1.20059.001", site = aq_sites) # Wind Speed
-neon_download(product = "DP1.20004.001", site = aq_sites) # pressure
-neon_download(product = "DP1.20046.001", site = aq_sites) # temperature
-neon_download(product = "DP1.20042.001", site = aq_sites) # PAR surface
-neon_download(product = "DP1.20261.001", site = aq_sites) # PAR below
-neon_download(product = "DP1.20016.001", site = aq_sites) # Elevation of surface water
-neon_download(product = "DP1.20217.001", site = aq_sites) # Groundwater temperature
-neon_download(product = "DP1.20033.001", site = aq_sites) # Nitrate
-neon_store(product = "DP1.20288.001") #Water Quality
-neon_store(product = "DP1.20059.001") # Wind Speed
-neon_store(product = "DP1.20004.001") # pressure
-neon_store(product = "DP1.20046.001") # temperature
-neon_store(product = "DP1.20042.001") # PAR surface
-neon_store(product = "DP1.20261.001") # PAR below
-neon_store(product = "DP1.20016.001") # Elevation of surface water
-neon_store(product = "DP1.20217.001") # Groundwater temperature
-neon_store(product = "DP1.20033.001") # Nitrate
+# note, is not downloading sensor positions
+neon_download(product = "DP1.20059.001", site = aq_sites, table = "WSDBuoy_30min") # Wind Speed
+neon_download(product = "DP1.20004.001", site = aq_sites, table = "BP_30min") # pressure
+neon_download(product = "DP1.20046.001", site = aq_sites, table = "RHbuoy_30min") # temperature, humidity
+neon_download(product = "DP1.20042.001", site = aq_sites, table = "PARWS_30min") # PAR surface
+neon_download(product = "DP1.20261.001", site = aq_sites, table = "uPAR_30min") # PAR below
+neon_download(product = "DP1.20016.001", site = aq_sites, table = "EOS_30_min") # Elevation of surface water
+neon_download(product = "DP1.20217.001", site = aq_sites, table = "TGW_30_minute") # Groundwater temperature
+neon_download(product = "DP1.20033.001", site = aq_sites, table = "NSW_15_minute") # Nitrate
+neon_store(product = "DP1.20059.001", table="WSDBuoy_30min") # Wind Speed
+neon_store(product = "DP1.20004.001", table = "BP_30min") # pressure
+neon_store(product = "DP1.20046.001", table = "RHbuoy_30min") # temperature
+neon_store(product = "DP1.20042.001",  table = "PARWS_30min") # PAR surface
+neon_store(product = "DP1.20261.001", table = "uPAR_30min") # PAR below
+neon_store(product = "DP1.20016.001", table = "EOS_30_min") # Elevation of surface water
+neon_store(product = "DP1.20217.001", table = "TGW_30_minute") # Groundwater temperature
+neon_store(product = "DP1.20033.001", table = "NSW_15_minute") # Nitrate
 
 
+neon_disconnect()
 
-message("export to parquet")
+## export via read-only connection
+db <- neon_db(memory_limit = 4) # soft limit
+
+## duckdb parquet export is not particularly RAM-efficient!
+message("exporting to parquet...")
 fs::dir_create("/home/rstudio/neon4cast-neonstore")
-neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore")
+neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore", db = db)
 
+DBI::dbDisconnect(db, shutdown=TRUE)
+rm(db)
+gc()
+
+message("Sync'ing to S3 bucket...")
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")

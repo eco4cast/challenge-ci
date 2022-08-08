@@ -7,8 +7,7 @@ Sys.setenv("NEONSTORE_HOME" = "/home/rstudio/data/neonstore")
 Sys.getenv("NEONSTORE_DB")
 
 #temporary aquatic repo during test of new workflow
-sites <- read_csv("https://raw.githubusercontent.com/OlssonF/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20220727.csv")
-#sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20210928.csv")
+sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20220727.csv")
 aq_sites <- sites$field_site_id
 sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-terrestrial/master/Terrestrial_NEON_Field_Site_Metadata_20210928.csv")
 ter_sites <- sites$field_site_id
@@ -39,16 +38,25 @@ neon_download(product = "DP1.10093.001", site = tick_sites)
 neonstore::neon_store(product =  "DP1.10093.001") 
 
 
-
-message("export to parquet")
+## free RAM associated with write.
+neon_disconnect()
+## export via read-only connection
+db <- neon_db(memory_limit = 4) # soft limit
+## duckdb parquet export is not particularly RAM-efficient!
+message("exporting to parquet...")
 fs::dir_create("/home/rstudio/neon4cast-neonstore")
-neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore")
+neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore", db = db)
 
+DBI::dbDisconnect(db, shutdown=TRUE)
+rm(db)
+gc()
+
+message("Sync'ing to S3 bucket...")
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
 s3 <- arrow::s3_bucket("neon4cast-targets/neon", endpoint_override = "data.ecoforecast.org")
 dir <- "/home/rstudio/neon4cast-neonstore"
-message("copying to s3 bucket")
 neonstore::neon_sync_db(s3, dir)
+
 
