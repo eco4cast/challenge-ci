@@ -7,13 +7,10 @@ Sys.setenv("NEONSTORE_HOME" = "/home/rstudio/data/neonstore")
 Sys.getenv("NEONSTORE_DB")
 
 #temporary aquatic repo during test of new workflow
-sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-aquatics/master/Aquatic_NEON_Field_Site_Metadata_20220727.csv")
-aq_sites <- sites$field_site_id
-sites <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-terrestrial/master/Terrestrial_NEON_Field_Site_Metadata_20210928.csv")
-ter_sites <- sites$field_site_id
-sites.df <- read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-ticks/master/Ticks_NEON_Field_Site_Metadata_20210928.csv")
-tick_sites <- sites.df %>% pull(field_site_id)
-
+site_data <- readr::read_csv("https://raw.githubusercontent.com/eco4cast/neon4cast-targets/main/NEON_Field_Site_Metadata_20220412.csv")
+aq_sites <- site_data |> filter(aquatics == 1) |> pull(field_site_id)
+ter_sites <- site_data |> filter(terrestrial == 1) |> pull(field_site_id)
+tick_sites <- site_data |> filter(ticks == 1) |> pull(field_site_id)
 
 message("aquatics targets")
 neonstore::neon_download("DP1.20288.001", site = aq_sites) # water quality

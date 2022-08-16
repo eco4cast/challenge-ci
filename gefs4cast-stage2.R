@@ -60,16 +60,20 @@ cycles <- "00"
 available_dates <- df |> 
   dplyr::filter(start_date %in% dates,
                 cycle == 0,
+                ensemble < 31,
                 variable == "PRES") |> 
-  distinct(start_date) |> 
-  collect() %>% 
-  pull(start_date)
+  dplyr::group_by(start_date, ensemble) |> 
+  dplyr::summarise(max_horizon = max(horizon)) |> 
+  dplyr::summarise(max_horizon = min(max_horizon)) |> 
+  dplyr::filter(max_horizon == 840) |> 
+  dplyr::collect() |> 
+  dplyr::pull(start_date)
 
 df2 <- arrow::open_dataset(s3_stage2_parquet, partitioning = c("start_date", "cycle"))
 
 df2 |> 
   dplyr::filter(start_date %in% dates[1],
-                cycle == 0) |> distinct(variable) |> collect()
+                cycle == 0) |> distinct(variable) |> dplyr::collect()
 
 max_horizon_date <- df2 |> 
   dplyr::filter(start_date %in% dates,
@@ -81,7 +85,7 @@ max_horizon_date <- df2 |>
   summarize(max = max(horizon)) |> 
   group_by(date, cycle) |>
   summarize(horizon = min(max)) |> 
-  collect()
+  dplyr::collect()
 
 forecast_start_times <- expand.grid(available_dates, cycles) |> 
   stats::setNames(c("date", "cycle")) |> 
@@ -144,7 +148,7 @@ if(nrow(forecast_start_times) > 0){
                                 #site_id == forecast_start_times$site_id[i],
                                 cycle == as.integer(forecast_start_times$cycle[i])) |> 
                   select(-c("start_date", "cycle")) |>  
-                  collect() |> 
+                  dplyr::collect() |> 
                   disaggregate_fluxes() |> 
                   add_horizon0_time() |> 
                   convert_precip2rate() |> 
@@ -192,6 +196,8 @@ if(nrow(forecast_start_times) > 0){
               model_name = model_name,
               base_dir = base_dir
   )
+}else{
+  message("no updates to process")
 }
 
 message(paste0("End: ",Sys.time()))

@@ -64,10 +64,12 @@ if(start <= avail_day -1 ) {
 
 # If we have some of the most recent available day, we need only missing cycles
 } else if (start == avail_day) {
-  need_cycles <- avail_cycles[!(avail_cycles %in% have_cycles)]
-  if(length(need_cycles)==0)
+  #need_cycles <- avail_cycles[!(avail_cycles %in% have_cycles)]
+  need_cycles <- avail_cycles
+  
+  if(length(need_cycles)==0){
     message("Up to date.")
-  else {
+  }else {
     if("00" %in% need_cycles) {
       full_dates <- start
     }
