@@ -17,7 +17,7 @@ message("Downloading forecasts ...")
 ## Note: s3sync stupidly also requires auth credentials even to download from public bucket
 
 #sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync(local_dir, bucket= "neon4cast-submissions",  direction= "download", verbose= FALSE, region=region)
+aws.s3::s3sync(local_dir, bucket= "submissions",  direction= "download", verbose= FALSE, region=region)
 #sink()
 
 submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
@@ -43,7 +43,9 @@ if(length(submissions) > 0){
       
       log_file <- paste0(local_dir, "/",curr_submission,".log")
       
-      if(theme %in% themes & submission_date <= Sys.Date()){
+      if(theme %in% themes){
+        #if(theme %in% themes & submission_date <= Sys.Date()){
+        
         
         capture.output({
           valid <- tryCatch(neon4cast::forecast_output_validator(file.path(local_dir,curr_submission)),
@@ -56,79 +58,71 @@ if(length(submissions) > 0){
           # pivot forecast before transferring
           if(!grepl("[.]xml", curr_submission)){
             fc <- read4cast::read_forecast(file.path(local_dir, curr_submission))
-            if("variable" %in% names(fc)){
-              df <- fc
-              pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
-              tmp <- file.path(tempdir(), pivoted_fc) 
-              readr::write_csv(df, tmp)
-            }else{
-              df <- fc %>% 
-                mutate(filename = basename(curr_submission)) %>% 
-                score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
-              pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
-              tmp <- file.path(tempdir(), pivoted_fc) 
-              readr::write_csv(df, tmp)
-            }
-            
+            df <- fc %>% 
+              mutate(filename = basename(curr_submission)) %>% 
+              score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
+            pivoted_fc <- paste0(tools::file_path_sans_ext(basename(curr_submission), compression=TRUE), ".csv.gz")
+            tmp <- file.path(tempdir(), pivoted_fc) 
+            readr::write_csv(df, tmp)
             # Then copy the original to the archives subdir
             aws.s3::put_object(file = tmp, 
-                               object = paste0("s3://neon4cast-forecasts/", theme,"/",pivoted_fc), region=region)
+                               object = paste0("s3://forecasts/", theme,"/",pivoted_fc), region=region)
             unlink(tmp) 
           }
           
           aws.s3::copy_object(from_object = curr_submission, 
-                              from_bucket = "neon4cast-submissions", 
+                              from_bucket = "submissions", 
                               to_object = paste0("raw/", theme,"/",curr_submission), 
-                              to_bucket = "neon4cast-forecasts",
+                              to_bucket = "forecasts",
                               region=region)
-          if(aws.s3::object_exists(object = paste0(theme,"/",pivoted_fc), bucket = "neon4cast-forecasts", region=region)){
+          if(aws.s3::object_exists(object = paste0(theme,"/",pivoted_fc), bucket = "forecasts", region=region)){
             print("delete")
-            aws.s3::delete_object(object = curr_submission, bucket = "neon4cast-submissions", region=region)
+            aws.s3::delete_object(object = curr_submission, bucket = "submissions", region=region)
           }
         } else { 
           aws.s3::copy_object(from_object = curr_submission, 
                               to_object = paste0("not_in_standard/",curr_submission), 
-                              from_bucket = "neon4cast-submissions", 
-                              to_bucket = "neon4cast-forecasts", region=region)
-          if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "neon4cast-forecasts", region=region)){
+                              from_bucket = "submissions", 
+                              to_bucket = "forecasts", region=region)
+          if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts", region=region)){
             print("delete")
-            aws.s3::delete_object(object = curr_submission, bucket = "neon4cast-submissions", region=region)
+            aws.s3::delete_object(object = curr_submission, bucket = "submissions", region=region)
           }
           
           aws.s3::put_object(file = log_file, 
                              object = paste0("not_in_standard/", 
                                              basename(log_file)), 
-                             bucket = "neon4cast-forecasts", region=region)
+                             bucket = "forecasts", region=region)
         }
       } else if(!(theme %in% themes)){
         aws.s3::copy_object(from_object = curr_submission, 
                             to_object = paste0("not_in_standard/",curr_submission), 
-                            from_bucket = "neon4cast-submissions",
-                            to_bucket = "neon4cast-forecasts", region=region)
+                            from_bucket = "submissions",
+                            to_bucket = "forecasts", region=region)
         capture.output({
           message(curr_submission)
           message("incorrect theme name in filename")
           message("Options are: ", paste(themes, collapse = " "))
         }, file = log_file, type = c("message"))
         
-        if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "neon4casts-forecasts", region=region)){
+        if(aws.s3::object_exists(object = paste0("not_in_standard/",curr_submission), bucket = "forecasts", region=region)){
           print("delete")
           aws.s3::delete_object(object = curr_submission,
-                                bucket = "neon4cast-submissions", region=region)
+                                bucket = "submissions", region=region)
         }
         
         aws.s3::put_object(file = log_file,
                            object = paste0("not_in_standard/", 
                                            basename(log_file)), 
-                           bucket = "neon4cast-forecasts", region=region)
+                           bucket = "forecasts", region=region)
       }else{
         #Don't do anything because the date hasn't occur yet
       }
     }else{
       aws.s3::copy_object(from_object = curr_submission, 
                           to_object = paste0("not_in_standard/",curr_submission), 
-                          from_bucket = "neon4cast-submissions",
-                          to_bucket = "neon4cast-forecasts", region=region)
+                          from_bucket = "submissions",
+                          to_bucket = "forecasts", region=region)
     }
   }
 }

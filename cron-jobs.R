@@ -65,7 +65,7 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "gef
                            workdir = file.path(home_dir, challange_ci_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/5f92ac9f-dc35-4eb6-af98-cc8afc4d69d0"
 )
-cronR::cron_add(command = cmd, frequency = '0 11 * * *', id = 'gefs4cast-stage3')
+cronR::cron_add(command = cmd, frequency = '0 9 * * *', id = 'gefs4cast-stage3')
 
 
 ## Scoring 
