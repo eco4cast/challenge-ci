@@ -1,3 +1,5 @@
+renv::restore()
+
 message("Starting score sync")
 message(Sys.time())
 

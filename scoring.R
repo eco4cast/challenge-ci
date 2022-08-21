@@ -1,3 +1,5 @@
+renv::restore()
+
 # remotes::install_deps()
 library(score4cast)
 library(arrow)

@@ -1,3 +1,5 @@
+renv::restore()
+
 ## 02_generate_targets_aquatics
 ## Process the raw data into the target variable produc
 library(neonstore)

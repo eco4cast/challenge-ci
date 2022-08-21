@@ -1,3 +1,5 @@
+renv::restore()
+
 ## CRON-job to update the recent GEFS parquet files
 ## Will pick up from the day after the last date on record
 

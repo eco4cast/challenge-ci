@@ -1,3 +1,5 @@
+renv::restore()
+
 library(neonstore)
 library(score4cast)
 library(arrow)
