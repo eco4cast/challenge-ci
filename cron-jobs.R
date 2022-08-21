@@ -1,3 +1,4 @@
+renv::restore()
 #remotes::install_github("rqthomas/cronR")
 #remotes::install_deps()
 library(cronR)
