@@ -25,6 +25,8 @@ s3_stage1 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/stage1",
                               endpoint_override =  "data.ecoforecast.org",
                               anonymous=TRUE)
 
+
+
 s3_stage3 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/", 
                               endpoint_override =  "data.ecoforecast.org")
 s3_stage3$CreateDir("stage3/parquet")
@@ -43,6 +45,8 @@ if(generate_netcdf){
 
 df <- arrow::open_dataset(s3_stage1, partitioning = c("start_date", "cycle"))
 
+
+
 sites <- df |> 
   dplyr::filter(start_date == "2020-09-25",
                 variable == "PRES") |> 
@@ -50,7 +54,24 @@ sites <- df |>
   collect() |> 
   pull(site_id)
 
-purrr::walk(sites, function(site, base_dir){
+all_stage1 <- df |> 
+  filter(variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
+         horizon %in% c(0,3)) |> 
+  collect()
+
+arrow::write_parquet(all_stage1, sink = "stage3tmp.parquet")
+
+rm(all_stage1)
+
+gc()
+
+df <- arrow::open_dataset("stage3tmp.parquet", partitioning = c("start_date", "cycle"))
+
+
+
+
+
+purrr::walk(sites, function(site, base_dir, df){
   message(site)
   message(Sys.time())
   fname <- paste0("stage3-",site,".parquet")
@@ -72,12 +93,10 @@ purrr::walk(sites, function(site, base_dir){
   if(do_run){
     
     d1 <- df |> 
-      filter(variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
-             start_date %in% date_range,
-             site_id == site,
-             horizon %in% c(0,3)) |> 
-      select(-c("start_date", "cycle")) |>
+      filter(start_date %in% date_range,
+             site_id == site) |> 
       collect() |> 
+      select(-c("start_date", "cycle")) |>
       distinct() |> 
       disaggregate_fluxes() |>  
       add_horizon0_time() |> 
@@ -112,7 +131,8 @@ purrr::walk(sites, function(site, base_dir){
     }
   }
 },
-base_dir = base_dir
+base_dir = base_dir,
+df = df
 )
 
 #d1 |> 
@@ -123,7 +143,10 @@ base_dir = base_dir
 
 #ggsave(p, filename = paste0("/home/rstudio/", sites[i],".pdf"), device = "pdf", height = 6, width = 12)
 
+unlink("stage3tmp.parquet")
 print(paste0("End: ",Sys.time()))
+
+
 
 
 
