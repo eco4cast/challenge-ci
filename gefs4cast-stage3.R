@@ -80,7 +80,9 @@ purrr::walk(sites, function(site, base_dir, df){
       mutate(start_date = lubridate::as_date(time))
     max_start_date <- max(d$start_date)
     d2 <- d %>% 
-      filter(start_date != max_start_date)
+      filter(start_date != max_start_date) |> 
+      select(-start_date)
+    
     date_range <- as.character(seq(max_start_date, Sys.Date(), by = "1 day"))
     do_run <- length(date_range) > 1
   }else{
@@ -108,10 +110,10 @@ purrr::walk(sites, function(site, base_dir, df){
       disaggregate2hourly() |>
       standardize_names_cf() |> 
       dplyr::bind_rows(d2) |>
+      #dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
       arrange(site_id, time, variable, ensemble)
     
     #NEED TO UPDATE TO WRITE TO S3
-    arrow::write_parquet(d1, sink = s3_stage3_parquet$path(file.path(site, fname)))
     
     if(generate_netcdf){
       d1 |> 
@@ -129,6 +131,10 @@ purrr::walk(sites, function(site, base_dir, df){
         })
       }
     }
+    
+    d1 |> 
+      dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
+      arrow::write_parquet(sink = s3_stage3_parquet$path(file.path(site, fname)))
   }
 },
 base_dir = base_dir,

@@ -166,10 +166,10 @@
     },
     "arrow": {
       "Package": "arrow",
-      "Version": "9.0.0",
+      "Version": "8.0.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "2c983e54b9911864bcd83de28a4c3acb",
+      "Hash": "58b7ef7a5c997e324767b86ae0bb0896",
       "Requirements": [
         "R6",
         "assertthat",
@@ -1403,8 +1403,8 @@
       "RemoteRepo": "read4cast",
       "RemoteUsername": "eco4cast",
       "RemoteRef": "HEAD",
-      "RemoteSha": "78a7cdc07913441ef1fce19fd26a3272f44905c6",
-      "Hash": "ac22d6c2518d7d7d5cabdd7a34db9395",
+      "RemoteSha": "25e891dcf24563530bdf62178c506da459c0550c",
+      "Hash": "29b8035074892fb86497bd05473e0e5a",
       "Requirements": [
         "dplyr",
         "lubridate",
@@ -1595,8 +1595,8 @@
       "RemoteRepo": "score4cast",
       "RemoteUsername": "eco4cast",
       "RemoteRef": "HEAD",
-      "RemoteSha": "21f2ccc2977257b3f81b3f16eacdcce1fc979843",
-      "Hash": "fc9c6af46d8e6e26f0e0e88efb5c682a",
+      "RemoteSha": "319cd4a12784e42159102551d87ec3bea350193b",
+      "Hash": "e369f2b69fdcd058c6f0140bb4c37f53",
       "Requirements": [
         "ISOweek",
         "arrow",
