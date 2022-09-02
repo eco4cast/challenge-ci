@@ -32,7 +32,7 @@ theme_choices <- names(challenge_config$themes)
 
 ```
 
-Visualize forecast submissions by date
+Multi-team visualization
 =======================================================================
 
 Pick Forecast Category {.sidebar}
@@ -85,27 +85,25 @@ renderUI({
               choices = potential_targets(), selected = potential_targets()[1])
 })
 
+sites <- reactive({
+  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date),
+                              model_id %in% input$team)
+  unique(df$site_id)
+})
+
+renderUI({
+  selectInput("facet", "Select site ID for plot panels:", 
+              choices = sites(), selected = sites()[1:5], multiple = TRUE)
+})
+
 
 team_date_forecast <-reactive({
   combined() %>% filter(model_id %in% input$team,
                         lubridate::as_date(start_time) == lubridate::as_date(input$date),
-                        variable == input$target
+                        variable == input$target,
+                        site_id %in% input$facet
   )
 })
-
-potential_facets <- reactive({
-  df <- team_date_forecast() %>% 
-    dplyr::select("site_id") %>% 
-    pivot_longer(cols = c("site_id"), names_to = "variable", values_to = "value") %>% 
-    filter(!is.na(value))
-  unique(df$variable)
-})
-
-renderUI({
-  radioButtons("facet", "Select variable for plot panels:", 
-              choices = potential_facets(), selected = potential_facets()[1])
-})
-
 
 ```
 
@@ -120,7 +118,7 @@ target.plot <- reactive({
     geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = model_id, fill = model_id), alpha = 0.3) +
     geom_line(aes(y = mean, color = model_id)) +
     geom_point(aes(y = observed), color = "black") +
-    facet_wrap(input$facet) +
+    facet_wrap(~site_id) +
     labs(x = "time", y = input$target)
 })
 
@@ -131,7 +129,7 @@ renderPlot({
 })
 ```
 
-Visualize forecast submissions by team
+Multi-date visualization
 =======================================================================
 
 Pick Forecast Category {.sidebar}
@@ -145,7 +143,8 @@ renderUI({
 })
 
 combined2 <- reactive({
-  s3_2 <- paste0(challenge_config$DATA_DIR, "scores/parquet/",input$forecast)
+  
+  s3_2 <- paste0(challenge_config$DATA_DIR, "/neon4cast-scores/parquet/",input$forecast)
   ds2 <- arrow::open_dataset(s3_2, partitioning = c("year"))
   ds2 %>% filter(year > 2020L, 
                           start_time > lubridate::as_date("2021-02-01")) %>%
@@ -185,25 +184,26 @@ renderUI({
 })
 
 
+
+sites2 <- reactive({
+  df <- combined2() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date2),
+                              model_id == input$team2)
+  unique(df$site_id)
+})
+
+renderUI({
+  selectInput("facet2", "Select site ID for plot panels:", 
+              choices = sites2(), selected = sites2()[1:5], multiple = TRUE)
+})
+
 team_date_forecast2 <-reactive({
   combined2() %>% filter(model_id == input$team2,
                          lubridate::as_date(start_time) %in% lubridate::as_date(input$date2),
-                         variable == input$target2
+                         variable == input$target2,
+                         site_id %in% input$facet2
   )
 })
 
- potential_facets2 <- reactive({
-   df <- team_date_forecast2() %>% 
-     dplyr::select("site_id") %>% 
-     pivot_longer(cols = c("site_id"), names_to = "variable", values_to = "value") %>% 
-     filter(!is.na(value))
-   unique(df$variable)
- })
- 
- renderUI({
-   radioButtons("facet2", "Select variable for plot panels:", 
-               choices = potential_facets2(), selected = potential_facets2()[1])
- })
 
 ```
 
@@ -219,8 +219,7 @@ target.plot2 <- reactive({
     geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = start_time, fill = start_time), alpha = 0.3) +
     geom_line(aes(y = mean, color = start_time)) +
     geom_point(aes(y = observed), color = "black") +
-    #facet_wrap(input$facet2) +
-        facet_wrap(~site_id) +
+    facet_wrap(~site_id) +
 
     labs(x = "time", y = input$target2)
 })

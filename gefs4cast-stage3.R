@@ -1,4 +1,4 @@
-renv::restore()
+#renv::restore()
 
 library(neonstore)
 library(score4cast)
@@ -21,11 +21,14 @@ model_name <- "NOAAGEFS_1hr_stacked"
 generate_netcdf <- TRUE
 write_s3 <- TRUE
 
+message("reading stage 1")
+
 s3_stage1 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/stage1", 
                               endpoint_override =  "data.ecoforecast.org",
                               anonymous=TRUE)
 
 
+message("reading stage 3")
 
 s3_stage3 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/", 
                               endpoint_override =  "data.ecoforecast.org")
@@ -43,6 +46,8 @@ if(generate_netcdf){
   fs::dir_create(s3_stage3_ncdf_local)
 }
 
+message("opening stage 1")
+
 df <- arrow::open_dataset(s3_stage1, partitioning = c("start_date", "cycle"))
 
 
@@ -54,22 +59,21 @@ sites <- df |>
   collect() |> 
   pull(site_id)
 
+message("collecting stage 1")
+
 all_stage1 <- df |> 
   filter(variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
          horizon %in% c(0,3)) |> 
   collect()
 
+message("writing stage 1")
 arrow::write_parquet(all_stage1, sink = "stage3tmp.parquet")
 
 rm(all_stage1)
 
 gc()
 
-df <- arrow::open_dataset("stage3tmp.parquet", partitioning = c("start_date", "cycle"))
-
-
-
-
+df <- arrow::open_dataset("stage3tmp.parquet")
 
 purrr::walk(sites, function(site, base_dir, df){
   message(site)
@@ -81,7 +85,7 @@ purrr::walk(sites, function(site, base_dir, df){
     max_start_date <- max(d$start_date)
     d2 <- d %>% 
       filter(start_date != max_start_date) |> 
-      select(-start_date)
+      select(-dplyr::any_of(c("start_date","horizon","forecast_valid")))
     
     date_range <- as.character(seq(max_start_date, Sys.Date(), by = "1 day"))
     do_run <- length(date_range) > 1
@@ -106,10 +110,11 @@ purrr::walk(sites, function(site, base_dir, df){
       convert_temp2kelvin() |> 
       convert_rh2proportion() |> 
       filter(horizon < 6) |> 
-      mutate(start_time = min(start_time)) |> 
+      mutate(start_time = min(time)) |> 
       disaggregate2hourly() |>
       standardize_names_cf() |> 
       dplyr::bind_rows(d2) |>
+      mutate(start_time = min(time)) |> 
       #dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
       arrange(site_id, time, variable, ensemble)
     
@@ -117,23 +122,22 @@ purrr::walk(sites, function(site, base_dir, df){
     
     if(generate_netcdf){
       d1 |> 
-        standardize_names_cf() |> 
         write_noaa_gefs_netcdf(dir = file.path(s3_stage3_ncdf_local, site), model_name = model_name)
       files <- fs::dir_ls(file.path(s3_stage3_ncdf_local, site))
       
       if(write_s3){
         readRenviron("~/.Renviron")
-        purrr::map(files, function(file){
-          aws.s3::put_object( file = file, 
+        purrr::walk(files, function(file){
+          aws.s3::put_object(file = file, 
                               object = file.path("noaa/gefs-v12/stage3/ncdf", site,basename(file)), 
-                              bucket = "neon4cast-drivers") 
+                              bucket = "neon4cast-drivers", verbose = FALSE) 
           fs::file_delete(file)
         })
       }
     }
     
     d1 |> 
-      dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
+      dplyr::select(time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
       arrow::write_parquet(sink = s3_stage3_parquet$path(file.path(site, fname)))
   }
 },

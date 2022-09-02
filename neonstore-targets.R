@@ -37,61 +37,61 @@ neonstore::neon_store(product =  "DP1.10093.001")
 
 
 ## free RAM associated with write.
-neon_disconnect()
+#neon_disconnect()
 ## export via read-only connection
-db <- neon_db(memory_limit = 4) # soft limit
+#db <- neon_db(memory_limit = 4) # soft limit
 ## duckdb parquet export is not particularly RAM-efficient!
-message("exporting to parquet...")
-fs::dir_create("/home/rstudio/neon4cast-neonstore")
-neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore", db = db)
+#message("exporting to parquet...")
+#fs::dir_create("/home/rstudio/neon4cast-neonstore")
+#neonstore::neon_export_db("/home/rstudio/neon4cast-neonstore", db = db)
 
-DBI::dbDisconnect(db, shutdown=TRUE)
-rm(db)
-gc()
+#DBI::dbDisconnect(db, shutdown=TRUE)
+#rm(db)
+#gc()
 
 
-message("Sync'ing to S3 bucket...")
-Sys.unsetenv("AWS_DEFAULT_REGION")
-Sys.unsetenv("AWS_S3_ENDPOINT")
-Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
-s3 <- arrow::s3_bucket("neon4cast-targets/neon", endpoint_override = "data.ecoforecast.org")
-dir <- "/home/rstudio/neon4cast-neonstore"
+#message("Sync'ing to S3 bucket...")
+#Sys.unsetenv("AWS_DEFAULT_REGION")
+#Sys.unsetenv("AWS_S3_ENDPOINT")
+#Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
+#s3 <- arrow::s3_bucket("neon4cast-targets/neon", endpoint_override = "data.ecoforecast.org")
+#dir <- "/home/rstudio/neon4cast-neonstore"
 #neonstore::neon_sync_db(s3, dir)
 
-parquet_labels <- function(dir) {
-  parquet_files <- list.files(dir, full.names = TRUE)
-  parquet_files <- parquet_files[grepl("[.]parquet",parquet_files)]
-  ## Ick, table names were mangled in file names, repair them!
-  con <- file.path(dir, "load.sql")
-  meta <- vroom::vroom_lines(con)
-  table_name <- from_sql_strings(meta, 2)
-  file_path <-  from_sql_strings(meta, 4)
-  names(table_name) <- file_path
-  table_name
-}
+#parquet_labels <- function(dir) {
+#  parquet_files <- list.files(dir, full.names = TRUE)
+#  parquet_files <- parquet_files[grepl("[.]parquet",parquet_files)]
+#  ## Ick, table names were mangled in file names, repair them!
+#  con <- file.path(dir, "load.sql")
+#  meta <- vroom::vroom_lines(con)
+#  table_name <- from_sql_strings(meta, 2)
+#  file_path <-  from_sql_strings(meta, 4)
+#  names(table_name) <- file_path
+#  table_name
+#}
 
-from_sql_strings <- function(str, part = 2){ 
-  table_names <- vapply(strsplit(str, " "), 
-                        function(x){
-                          bits <- gsub("[\'\"]", "", x)
-                          bits[[part]]
-                        }, 
-                        character(1L))
-}
+#from_sql_strings <- function(str, part = 2){ 
+#  table_names <- vapply(strsplit(str, " "), 
+#                        function(x){
+#                          bits <- gsub("[\'\"]", "", x)
+#                          bits[[part]]
+#                        }, 
+#                        character(1L))
+#}
 
-table_names <- parquet_labels(dir)
-file_paths <- names(table_names)
+#table_names <- parquet_labels(dir)
+#file_paths <- names(table_names)
 
-status <- lapply(seq_along(table_names), 
-                 function(i) {
-                   message(table_names[[i]])
-                   df <- arrow::open_dataset(file_paths[[i]])
-                   if(!is.null(df$schema$GetFieldByName("siteID"))){
-                     arrow::write_dataset(df, s3$path(table_names[[i]]), partitioning = "siteID")
-                   }else{
-                     arrow::write_dataset(df, s3$path(table_names[[i]]))
-                   }
-                 })
+#status <- lapply(seq_along(table_names), 
+#                 function(i) {
+#                   message(table_names[[i]])
+#                   df <- arrow::open_dataset(file_paths[[i]])
+#                   if(!is.null(df$schema$GetFieldByName("siteID"))){
+#                     arrow::write_dataset(df, s3$path(table_names[[i]]), partitioning = "siteID")
+#                   }else{
+#                     arrow::write_dataset(df, s3$path(table_names[[i]]))
+#                   }
+#                 })
 
 
 

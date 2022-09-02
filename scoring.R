@@ -1,4 +1,4 @@
-renv::restore()
+#renv::restore()
 
 # remotes::install_deps()
 library(score4cast)
@@ -18,28 +18,42 @@ s3_targets <- arrow::s3_bucket("neon4cast-targets", endpoint_override = endpoint
 s3_scores <- arrow::s3_bucket("neon4cast-scores", endpoint_override = endpoint)
 s3_prov <- arrow::s3_bucket("neon4cast-prov", endpoint_override = endpoint)
 
+themes <- c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
+            "terrestrial_30min", "phenology")
 
-## a single score
-#errors <- score_theme("aquatics", s3_forecasts, s3_targets, s3_scores, s3_prov, after = as.Date("2022-01-01"))
+for(i in 1:length(themes)){
+  message("###########################")
+  message(paste0("Scoring ", themes[i]))
+  message(Sys.time())
+  errors <- score_theme(themes[i], s3_forecasts, s3_targets, s3_scores, s3_prov, after = as.Date("2022-01-01"))
+  
+  ## Check logs:
+  if(length(errors$urls) > 0){
+    message(paste("some forecasts failed to score:\n",
+                  paste(errors$urls, collapse="\n")))
+  } else {
+    message("successfully scored all forecasts")
+  }
+}
 
 
-# Here we go!
-errors <- 
-  c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
-    "terrestrial_30min", "phenology") %>%   
-  purrr::map(score_theme, s3_forecasts, s3_targets,
-             s3_scores, s3_prov, after = as.Date("2022-01-01"))
-
+#message("Starting to score")
+#errors <- 
+#  c("aquatics", "beetles",  "ticks",  "terrestrial_daily", 
+#    "terrestrial_30min", "phenology") %>%   
+#  purrr::map(score_theme, s3_forecasts, s3_targets,
+#             s3_scores, s3_prov, after = as.Date("2022-01-01"))
+#message("Finished scoring")
 
 
 ## Check logs:
-failed_urls <- unlist(map(1:6, function(i) errors[[i]]$urls))
-if(length(failed_urls) > 0){
-  message(paste("some forecasts failed to score:\n",
-                paste(failed_urls, collapse="\n")))
-} else {
-  message("successfully scored all forecasts")
-}
+#failed_urls <- unlist(map(1:6, function(i) errors[[i]]$urls))
+#if(length(failed_urls) > 0){
+#  message(paste("some forecasts failed to score:\n",
+#                paste(failed_urls, collapse="\n")))
+#} else {
+#  message("successfully scored all forecasts")
+#}
 
 
 
