@@ -182,7 +182,7 @@ if(nrow(forecast_start_times) > 0){
                       readRenviron("~/.Renviron")
                       #arrow::copy_files(from = file.path(s3_stage2_ncdf_local, forecast_start_times$dir[i],site_list[j]), to = s3_stage2_ncdf$path(file.path(forecast_start_times$dir[i],site_list[j])))
                       
-                      purrr::map(files, function(file){
+                      purrr::walk(files, function(file){
                         aws.s3::put_object( file = file, 
                                             object = file.path("noaa/gefs-v12/stage2/ncdf", forecast_start_times$dir[i],site_list[j],basename(file)), 
                                             bucket = "neon4cast-drivers")
