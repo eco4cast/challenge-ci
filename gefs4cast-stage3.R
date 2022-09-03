@@ -103,9 +103,9 @@ purrr::walk(sites, function(site, base_dir, df){
     d1 <- df |> 
       filter(start_date %in% date_range,
              site_id == site) |> 
-      collect() |> 
       select(-c("start_date", "cycle")) |>
       distinct() |> 
+      collect() |> 
       disaggregate_fluxes() |>  
       add_horizon0_time() |> 
       convert_precip2rate() |>
