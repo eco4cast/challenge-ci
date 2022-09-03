@@ -3,7 +3,7 @@ renv::restore()
 #remotes::install_deps()
 library(cronR)
 
-home_dir <-  path.expand("~")
+home_dir <-  path.expand("~/eco4cast")
 log_dir <- path.expand("~/log/cron")
 
 challange_ci_repo <- "challenge-ci"
@@ -20,6 +20,7 @@ cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "neo
                            workdir = file.path(home_dir, challange_ci_repo),
                            trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/a658b77a-bae9-4908-8f06-3603e1b5ff3f")
 cronR::cron_add(command = cmd, frequency = 'daily', at = "2AM", id = 'neonstore-targets')
+
 ## NEON import/export
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo, "neonstore-covariates.R"),
                            rscript_log = file.path(log_dir, "neonstore-covariates.log"),

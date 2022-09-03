@@ -1,4 +1,7 @@
+readRenviron("~/.Renviron") # MUST come first
+source(".Rprofile") # littler won't read this automatically, so renv won't work
 #renv::restore()
+
 
 library(neonstore)
 library(score4cast)
@@ -6,12 +9,11 @@ library(arrow)
 library(dplyr)
 library(ggplot2)
 library(gefs4cast)
-readRenviron("~/.Renviron")
 print(paste0("Start: ",Sys.time()))
 
 source(system.file("examples", "temporal_disaggregation.R", package = "gefs4cast"))
 
-base_dir <- "/home/rstudio/test_processing/noaa/gefs-v12/"
+base_dir <- path.expand("~/test_processing/noaa/gefs-v12/")
 generate_netcdf <- TRUE
 
 Sys.unsetenv("AWS_DEFAULT_REGION")
@@ -101,9 +103,9 @@ purrr::walk(sites, function(site, base_dir, df){
     d1 <- df |> 
       filter(start_date %in% date_range,
              site_id == site) |> 
-      collect() |> 
       select(-c("start_date", "cycle")) |>
       distinct() |> 
+      collect() |> 
       disaggregate_fluxes() |>  
       add_horizon0_time() |> 
       convert_precip2rate() |>
