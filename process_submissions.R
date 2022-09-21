@@ -1,6 +1,8 @@
 #renv::restore()
 
 library(tidyverse)
+library(score4cast)
+library(arrow)
 
 #remotes::install_deps()
 challenge_config <- yaml::read_yaml("challenge_config.yml")
@@ -29,6 +31,12 @@ themes <- names(challenge_config$themes)
 
 
 if(length(submissions) > 0){
+  
+  Sys.unsetenv("AWS_DEFAULT_REGION")
+  Sys.unsetenv("AWS_S3_ENDPOINT")
+  Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
+  s3 <- arrow::s3_bucket("neon4cast-forecasts", endpoint_override="data.ecoforecast.org")
+  
   for(i in 1:length(submissions)){
     
     curr_submission <- basename(submissions[i])
@@ -39,13 +47,14 @@ if(length(submissions) > 0){
     print(curr_submission)
     print(theme)
     
-    if((tools::file_ext(curr_submission) %in% c("nc", "gz", "csv", "xml")) & !is.na(submission_date)){
+    example <- stringr::str_detect(curr_submission, pattern = "air2waterSat.csv.gz") | stringr::str_detect(curr_submission, pattern = "neon4cast-example")
+    
+    if((tools::file_ext(curr_submission) %in% c("nc", "gz", "csv", "xml")) & !is.na(submission_date) & !example){
       
       log_file <- paste0(local_dir, "/",curr_submission,".log")
       
       if(theme %in% themes){
         #if(theme %in% themes & submission_date <= Sys.Date()){
-        
         
         capture.output({
           valid <- tryCatch(neon4cast::forecast_output_validator(file.path(local_dir,curr_submission)),
@@ -58,30 +67,32 @@ if(length(submissions) > 0){
           # pivot forecast before transferring
           if(!grepl("[.]xml", basename(submissions[i]))){
             fc <- read4cast::read_forecast(submissions[i])
-            df <- fc %>% 
-              mutate(filename = basename(submissions[i])) %>% 
-              score4cast::pivot_forecast(target_vars = score4cast:::TARGET_VARS)
-            new_file <- paste0(tools::file_path_sans_ext(basename(submissions[i]), compression=TRUE), ".csv.gz")
-            tmp <- file.path(tempdir(), new_file) 
-            readr::write_csv(df, tmp)
-            # Then copy the original to the archives subdir
-            aws.s3::put_object(file = tmp, 
-                               object = paste0("s3://neon4cast-forecasts/", theme,"/",new_file), region=region)
-            unlink(tmp) 
+            fc <- standardize_forecast(fc,basename(submissions[i]))
+            path <- s3$path(paste0("parquet/", theme))
+            fc |> write_dataset(path, format = 'parquet', 
+                                partitioning=c("model_id", "reference_datetime", "site_id"))
+            #unlink(tmp) 
           }else{
             new_file <- basename(submissions[i])
           }
+          
+          Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                     "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
           
           aws.s3::copy_object(from_object = submissions_bucket[i], 
                               from_bucket = "neon4cast-submissions", 
                               to_object = paste0("raw/", theme,"/",basename(submissions[i])), 
                               to_bucket = "neon4cast-forecasts",
                               region=region)
+          
           if(aws.s3::object_exists(object = paste0(theme,"/",new_file), bucket = "neon4cast-forecasts", region=region)){
             print("delete")
             aws.s3::delete_object(object = submissions_bucket[i], bucket = "neon4cast-submissions", region=region)
           }
         } else { 
+          Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                     "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
+          
           aws.s3::copy_object(from_object = submissions_bucket[i], 
                               to_object = paste0("not_in_standard/", basename(submissions[i])), 
                               from_bucket = "neon4cast-submissions", 
@@ -97,6 +108,9 @@ if(length(submissions) > 0){
                              bucket = "neon4cast-forecasts", region=region)
         }
       } else if(!(theme %in% themes)){
+        Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                   "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
+        
         aws.s3::copy_object(from_object = submissions_bucket[i], 
                             to_object = paste0("not_in_standard/",basename(submissions[i])), 
                             from_bucket = "neon4cast-submissions",
@@ -109,9 +123,14 @@ if(length(submissions) > 0){
         
         if(aws.s3::object_exists(object = paste0("not_in_standard/",basename(submissions[i])), bucket = "neon4cast-forecasts", region=region)){
           print("delete")
+          Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                     "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
           aws.s3::delete_object(object = submissions_bucket[i],
                                 bucket = "neon4cast-submissions", region=region)
         }
+        
+        Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                   "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
         
         aws.s3::put_object(file = log_file,
                            object = paste0("not_in_standard/", 
@@ -121,6 +140,9 @@ if(length(submissions) > 0){
         #Don't do anything because the date hasn't occur yet
       }
     }else{
+      Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
+                 "AWS_S3_ENDPOINT" = challenge_config$AWS_S3_ENDPOINT)
+      
       aws.s3::copy_object(from_object = submissions_bucket[i], 
                           to_object = paste0("not_in_standard/",basename(submissions[i])), 
                           from_bucket = "neon4cast-submissions",
@@ -129,4 +151,3 @@ if(length(submissions) > 0){
   }
 }
 unlink(local_dir, recursive = TRUE)
-

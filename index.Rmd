@@ -29,6 +29,7 @@ challenge_config <- yaml::read_yaml("challenge_config.yml")
 #s3 <- "/efi_neon_challenge/local/scores/parquet/"
 #ds <- arrow::open_dataset(s3) %>% collect()
 theme_choices <- names(challenge_config$themes)
+base_date <- "2021-02-01"
 
 ```
 
@@ -45,16 +46,24 @@ renderUI({
 })
 
 combined <- reactive({
+
+  #s3 <- arrow::s3_bucket(paste0("neon4cast-scores/parquet/",input$forecast) , endpoint_override=challenge_config$endpoint_override)
+  s3 <- SubTreeFileSystem$create(paste0(challenge_config$DATA_DIR, "/scores/parquet/",input$forecast))
+  #s3 <- paste0(challenge_config$DATA_DIR, "/scores/parquet/",input$forecast)
+  ds <- arrow::open_dataset(s3)
   
-  s3 <- paste0(challenge_config$DATA_DIR, "/neon4cast-scores/parquet/",input$forecast)
-  ds <- arrow::open_dataset(s3, partitioning = c("year"))
-  ds %>% filter(year > 2020L, 
-                          start_time > lubridate::as_date("2021-02-01")) %>%
+  df <- ds %>% filter(reference_datetime > base_date &
+                      !(model_id == "persistenceRW" & variable == "chla")) %>%
   collect()
+  print(df)
+  df
+  #ds %>% filter(reference_datetime > base_date,
+  #              !(model_id == "persistenceRW" & variable == "chla")) %>%
+  #collect()
 })
 
 potential_dates <- reactive({
-   df <-  unique(combined()$start_time)
+   df <-  unique(combined()$reference_datetime)
    sort(lubridate::as_date(df), decreasing = TRUE)
 
 })
@@ -65,7 +74,7 @@ renderUI({
 })
 
 file.teams <- reactive({
-  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date))
+  df <- combined() %>% filter(lubridate::as_date(reference_datetime) == lubridate::as_date(input$date))
   unique(df$model_id)
 })
 
@@ -75,7 +84,7 @@ renderUI({
 })
 
 potential_targets <- reactive({
-  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date),
+  df <- combined() %>% filter(lubridate::as_date(reference_datetime) == lubridate::as_date(input$date),
                               model_id %in% input$team)
   unique(df$variable)
 })
@@ -86,7 +95,7 @@ renderUI({
 })
 
 sites <- reactive({
-  df <- combined() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date),
+  df <- combined() %>% filter(lubridate::as_date(reference_datetime) == lubridate::as_date(input$date),
                               model_id %in% input$team)
   unique(df$site_id)
 })
@@ -99,7 +108,7 @@ renderUI({
 
 team_date_forecast <-reactive({
   combined() %>% filter(model_id %in% input$team,
-                        lubridate::as_date(start_time) == lubridate::as_date(input$date),
+                        lubridate::as_date(reference_datetime) == lubridate::as_date(input$date),
                         variable == input$target,
                         site_id %in% input$facet
   )
@@ -114,7 +123,7 @@ Forecast Plot
 target.plot <- reactive({
   
   team_date_forecast() %>% 
-    ggplot(aes(x = time, y = mean, color = model_id)) +
+    ggplot(aes(x = datetime, y = mean, color = model_id)) +
     geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = model_id, fill = model_id), alpha = 0.3) +
     geom_line(aes(y = mean, color = model_id)) +
     geom_point(aes(y = observed), color = "black") +
@@ -144,11 +153,13 @@ renderUI({
 
 combined2 <- reactive({
   
-  s3_2 <- paste0(challenge_config$DATA_DIR, "/neon4cast-scores/parquet/",input$forecast)
-  ds2 <- arrow::open_dataset(s3_2, partitioning = c("year"))
-  ds2 %>% filter(year > 2020L, 
-                          start_time > lubridate::as_date("2021-02-01")) %>%
+  s3_2 <- SubTreeFileSystem$create(paste0(challenge_config$DATA_DIR, "/scores/parquet/",input$forecast))
+  ds_2 <- arrow::open_dataset(s3_2)
+  df2 <- ds_2 %>% filter(reference_datetime > base_date,
+                !(model_id == "persistenceRW" & variable == "chla")) %>%
   collect()
+  print(df2)
+  df2
 })
 
 file.teams2 <- reactive({
@@ -163,7 +174,7 @@ renderUI({
 
 potential_dates2 <- reactive({
   df <- combined2() %>% filter(model_id == input$team2)
-  df <-  unique(df$start_time)
+  df <-  unique(df$reference_datetime)
    sort(lubridate::as_date(df), decreasing = TRUE)
 })
 
@@ -173,7 +184,7 @@ renderUI({
 })
 
 potential_targets2 <- reactive({
-  df <- combined2() %>% filter(lubridate::as_date(start_time) %in% lubridate::as_date(input$date2),
+  df <- combined2() %>% filter(lubridate::as_date(reference_datetime) %in% lubridate::as_date(input$date2),
                                model_id == input$team2)
   unique(df$variable)
 })
@@ -186,7 +197,7 @@ renderUI({
 
 
 sites2 <- reactive({
-  df <- combined2() %>% filter(lubridate::as_date(start_time) == lubridate::as_date(input$date2),
+  df <- combined2() %>% filter(lubridate::as_date(reference_datetime) == lubridate::as_date(input$date2),
                               model_id == input$team2)
   unique(df$site_id)
 })
@@ -198,7 +209,7 @@ renderUI({
 
 team_date_forecast2 <-reactive({
   combined2() %>% filter(model_id == input$team2,
-                         lubridate::as_date(start_time) %in% lubridate::as_date(input$date2),
+                         lubridate::as_date(reference_datetime) %in% lubridate::as_date(input$date2),
                          variable == input$target2,
                          site_id %in% input$facet2
   )
@@ -214,10 +225,10 @@ Forecast Plot
 target.plot2 <- reactive({
   
   team_date_forecast2() %>% 
-    mutate(start_time = factor(start_time)) %>% 
-    ggplot(aes(x = time, y = mean, color = start_time)) +
-    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = start_time, fill = start_time), alpha = 0.3) +
-    geom_line(aes(y = mean, color = start_time)) +
+    mutate(reference_datetime = factor(reference_datetime)) %>% 
+    ggplot(aes(x = datetime, y = mean, color = reference_datetime)) +
+    geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = reference_datetime, fill = reference_datetime), alpha = 0.3) +
+    geom_line(aes(y = mean, color = reference_datetime)) +
     geom_point(aes(y = observed), color = "black") +
     facet_wrap(~site_id) +
 

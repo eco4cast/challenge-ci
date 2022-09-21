@@ -1,5 +1,5 @@
 readRenviron("~/.Renviron") # MUST come first
-source(".Rprofile") # littler won't read this automatically, so renv won't work
+#source(".Rprofile") # littler won't read this automatically, so renv won't work
 #renv::restore()
 
 
