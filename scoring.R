@@ -1,3 +1,4 @@
+# remotes::install_deps()
 library(score4cast)
 library(arrow)
 
@@ -14,14 +15,14 @@ s3_scores <- arrow::s3_bucket("neon4cast-scores", endpoint_override = endpoint)
 s3_prov <- arrow::s3_bucket("neon4cast-prov", endpoint_override = endpoint)
 
 # Here we go!
-themes <- c("beetles",  "ticks", "aquatics", 
+themes <- c("beetles",  
+            "ticks", 
+            "aquatics", 
             "terrestrial_daily",
             "phenology", 
             "terrestrial_30min")
-
 for( theme in themes) { 
   message(glue::glue("scoring {theme} ..."))
-  time <- score_theme(theme, s3_forecasts, s3_targets, s3_scores, s3_prov, 
-                      local_prov = glue::glue("{theme}-scoring-prov.csv", theme=theme))
+  time <- score_theme(theme, s3_forecasts, s3_targets, s3_scores, s3_prov)
   message(paste("done in", time[["real"]]))
 }

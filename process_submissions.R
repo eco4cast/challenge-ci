@@ -1,8 +1,11 @@
 #renv::restore()
+readRenviron("~/.Renviron") # MUST come first
 
 library(tidyverse)
 library(score4cast)
 library(arrow)
+
+message(paste0("Starting Processing Submissions ", Sys.time()))
 
 #remotes::install_deps()
 challenge_config <- yaml::read_yaml("challenge_config.yml")
@@ -21,7 +24,7 @@ message("Downloading forecasts ...")
 ## Note: s3sync stupidly also requires auth credentials even to download from public bucket
 
 #sink(tempfile()) # aws.s3 is crazy chatty and ignores suppressMessages()...
-aws.s3::s3sync(local_dir, bucket= "neon4cast-submissions",  direction= "download", verbose= FALSE, region=region)
+aws.s3::s3sync(local_dir, bucket= "neon4cast-submissions",  direction= "download", verbose = FALSE, region = region)
 #sink()
 
 submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
@@ -67,13 +70,16 @@ if(length(submissions) > 0){
           # pivot forecast before transferring
           if(!grepl("[.]xml", basename(submissions[i]))){
             fc <- read4cast::read_forecast(submissions[i])
-            fc <- standardize_forecast(fc,basename(submissions[i]))
+            if(theme == "terrestrial_30min"){
+              reference_datetime_format <- "%Y-%m-%d %H:%M:%S"
+            }else{
+              reference_datetime_format <- "%Y-%m-%d"
+            }
+            fc <- score4cast::standardize_forecast(fc,basename(submissions[i]), reference_datetime_format = reference_datetime_format)
             path <- s3$path(paste0("parquet/", theme))
             fc |> write_dataset(path, format = 'parquet', 
                                 partitioning=c("model_id", "reference_datetime", "site_id"))
             #unlink(tmp) 
-          }else{
-            new_file <- basename(submissions[i])
           }
           
           Sys.setenv("AWS_DEFAULT_REGION" = challenge_config$AWS_DEFAULT_REGION,
@@ -85,7 +91,7 @@ if(length(submissions) > 0){
                               to_bucket = "neon4cast-forecasts",
                               region=region)
           
-          if(aws.s3::object_exists(object = paste0(theme,"/",new_file), bucket = "neon4cast-forecasts", region=region)){
+          if(aws.s3::object_exists(object = paste0("raw/", theme,"/",basename(submissions[i])), bucket = "neon4cast-forecasts", region=region)){
             print("delete")
             aws.s3::delete_object(object = submissions_bucket[i], bucket = "neon4cast-submissions", region=region)
           }
@@ -151,3 +157,5 @@ if(length(submissions) > 0){
   }
 }
 unlink(local_dir, recursive = TRUE)
+
+message(paste0("Completed Processing Submissions ", Sys.time()))
