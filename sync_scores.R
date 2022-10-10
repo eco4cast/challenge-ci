@@ -21,21 +21,5 @@ write_dataset(all_scores,
               format = 'parquet',  partitioning=c("model_id", "reference_datetime", "site_id"))
 }
 
-library(tidyverse)
-all_scores |> 
-  filter(target_id == "phenology", year>=2022) |> 
-  select(start_time) |> 
-  distinct(start_time) |> 
-  collect() 
-  group_by(model_id) |> 
-  summarise(most_recent = max(start_time)) |> 
-  collect()
-
-## inspect most recent dates scored?
-all_scores %>% 
-  dplyr::group_by(target_id) %>% 
-  dplyr::summarize(max = max(start_time)) %>%
-  dplyr::collect()
-
 
 message("Successfully synced scores")
