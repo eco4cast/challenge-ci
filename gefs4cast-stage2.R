@@ -57,7 +57,7 @@ if(real_time_processing){
   dates <- as.character(seq(lubridate::as_date("2020-11-03"), lubridate::as_date("2020-12-31"), by = "1 day"))
 }
 
-cycles <- "00"
+cycles <- 0
 
 available_dates <- df |> 
   dplyr::filter(start_date %in% dates,
@@ -96,14 +96,14 @@ forecast_start_times <- expand.grid(available_dates, cycles) |>
          cycle = as.integer(as.character(cycle)),
          date = date) |> 
   select(date, cycle, dir) |> 
-  left_join(max_horizon_date, by = c("date","cycle")) |> 
-  mutate(cycle = stringr::str_pad(cycle, width = 2, side = "left", pad = 0))
+  left_join(max_horizon_date, by = c("date","cycle")) #|> 
+  #mutate(cycle = stringr::str_pad(cycle, width = 2, side = "left", pad = 0))
 
 files_present <- purrr::map_int(1:nrow(forecast_start_times), function(i, forecast_start_times){
   if(forecast_start_times$date[i] %in% s3_stage2_parquet$ls()){
     if(forecast_start_times$dir[i] %in% s3_stage2_parquet$ls(forecast_start_times$date[i])){
       exiting_files <- length(s3_stage2_parquet$ls(forecast_start_times$dir[i]))
-      if((forecast_start_times$horizon[i] < 840 | is.na(forecast_start_times$horizon[i])) & forecast_start_times$cycle[i] == "00"){
+      if((forecast_start_times$horizon[i] < 840 | is.na(forecast_start_times$horizon[i])) & forecast_start_times$cycle[i] == 0){
         exiting_files <- NA
       }
       if(generate_netcdf){

@@ -112,11 +112,11 @@ purrr::walk(sites, function(site, base_dir, df){
       convert_temp2kelvin() |> 
       convert_rh2proportion() |> 
       filter(horizon < 6) |> 
-      mutate(start_time = min(time)) |> 
+      mutate(reference_datetime = min(datetime)) |> 
       disaggregate2hourly() |>
       standardize_names_cf() |> 
       dplyr::bind_rows(d2) |>
-      mutate(start_time = min(time)) |> 
+      mutate(reference_datetime = min(datetime)) |> 
       #dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
       arrange(site_id, time, variable, ensemble)
     
@@ -139,7 +139,7 @@ purrr::walk(sites, function(site, base_dir, df){
     }
     
     d1 |> 
-      dplyr::select(time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
+      dplyr::select(datetime, site_id, longitude, latitude, ensemble, variable, height, prediction) |> 
       arrow::write_parquet(sink = s3_stage3_parquet$path(file.path(site, fname)))
   }
 },

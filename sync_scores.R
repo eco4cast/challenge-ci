@@ -21,5 +21,7 @@ write_dataset(all_scores,
               format = 'parquet',  partitioning=c("model_id", "reference_datetime", "site_id"))
 }
 
+gc()
+
 
 message("Successfully synced scores")
