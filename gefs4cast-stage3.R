@@ -30,6 +30,8 @@ s3_stage1 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/stage1",
                               anonymous=TRUE)
 
 
+
+
 message("reading stage 3")
 
 s3_stage3 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/", 
@@ -50,7 +52,7 @@ if(generate_netcdf){
 
 message("opening stage 1")
 
-df <- arrow::open_dataset(s3_stage1, partitioning = c("start_date", "cycle"))
+df <- arrow::open_dataset(s3_stage1, partitioning = c("cycle","start_date"))
 
 
 
@@ -65,11 +67,10 @@ message("collecting stage 1")
 
 all_stage1 <- df |> 
   filter(variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
-         horizon %in% c(0,3)) |> 
-  collect()
-
+         horizon %in% c(0,3))
 message("writing stage 1")
-arrow::write_parquet(all_stage1, sink = "stage3tmp.parquet")
+stage1_local <- SubTreeFileSystem$create(base_dir)
+arrow::write_dataset(dataset = all_stage1, path = s3_stage2_parquet$path())
 
 rm(all_stage1)
 
@@ -80,10 +81,10 @@ df <- arrow::open_dataset("stage3tmp.parquet")
 purrr::walk(sites, function(site, base_dir, df){
   message(site)
   message(Sys.time())
-  fname <- paste0("stage3-",site,".parquet")
+  fname <- "part-0.parquet"
   if(site %in% s3_stage3_parquet$ls()){
     d <- arrow::read_parquet(s3_stage3_parquet$path(file.path(site, fname))) %>% 
-      mutate(start_date = lubridate::as_date(time))
+      mutate(start_date = lubridate::as_date(datetime))
     max_start_date <- max(d$start_date)
     d2 <- d %>% 
       filter(start_date != max_start_date) |> 
@@ -118,7 +119,7 @@ purrr::walk(sites, function(site, base_dir, df){
       dplyr::bind_rows(d2) |>
       mutate(reference_datetime = min(datetime)) |> 
       #dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
-      arrange(site_id, time, variable, ensemble)
+      arrange(site_id, time, variable, parameter)
     
     #NEED TO UPDATE TO WRITE TO S3
     
@@ -139,7 +140,8 @@ purrr::walk(sites, function(site, base_dir, df){
     }
     
     d1 |> 
-      dplyr::select(datetime, site_id, longitude, latitude, ensemble, variable, height, prediction) |> 
+      dplyr::mutate(family = "ensemble") |> 
+      dplyr::select(datetime, site_id, longitude, latitude, family, parameter, variable, height, prediction) |> 
       arrow::write_parquet(sink = s3_stage3_parquet$path(file.path(site, fname)))
   }
 },

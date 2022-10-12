@@ -49,7 +49,7 @@ if(write_s3){
   }
 }
 
-df <- arrow::open_dataset(s3_stage1, partitioning = c("start_date", "cycle"))
+df <- arrow::open_dataset(s3_stage1, partitioning = c("cycle", "start_date"))
 
 if(real_time_processing){
   dates <- as.character(seq(Sys.Date() - lubridate::days(4), Sys.Date(), by = "1 day"))
@@ -62,16 +62,16 @@ cycles <- 0
 available_dates <- df |> 
   dplyr::filter(start_date %in% dates,
                 cycle == 0,
-                ensemble < 31,
+                parameter < 31,
                 variable == "PRES") |> 
-  dplyr::group_by(start_date, ensemble) |> 
+  dplyr::group_by(start_date, parameter) |> 
   dplyr::summarise(max_horizon = max(horizon)) |> 
   dplyr::summarise(max_horizon = min(max_horizon)) |> 
   dplyr::filter(max_horizon == 840) |> 
   dplyr::collect() |> 
   dplyr::pull(start_date)
 
-df2 <- arrow::open_dataset(s3_stage2_parquet, partitioning = c("start_date", "cycle"))
+df2 <- arrow::open_dataset(s3_stage2_parquet, partitioning = c("cycle","start_date"))
 
 df2 |> 
   dplyr::filter(start_date %in% dates[1],
@@ -80,10 +80,10 @@ df2 |>
 max_horizon_date <- df2 |> 
   dplyr::filter(start_date %in% dates,
                 cycle == 0,
-                ensemble < 31,
+                parameter < 31,
                 variable == "air_temperature") |>
   dplyr::rename(date = start_date) |> 
-  group_by(date, cycle, ensemble) |>
+  group_by(date, cycle, parameter) |>
   summarize(max = max(horizon)) |> 
   group_by(date, cycle) |>
   summarize(horizon = min(max)) |> 
@@ -91,26 +91,26 @@ max_horizon_date <- df2 |>
 
 forecast_start_times <- expand.grid(available_dates, cycles) |> 
   stats::setNames(c("date", "cycle")) |> 
-  mutate(start_times = paste0(date, " ", cycle, ":00:00"),
-         dir = file.path(date, cycle),
+  mutate(start_times = paste0(date, " ", stringr::str_pad(cycle, width = 2, side = "left", pad = 0), ":00:00"),
+         dir_parquet = file.path(cycle, date),
+         dir_netcdf = file.path(date, cycle),
          cycle = as.integer(as.character(cycle)),
          date = date) |> 
   select(date, cycle, dir) |> 
-  left_join(max_horizon_date, by = c("date","cycle")) #|> 
-  #mutate(cycle = stringr::str_pad(cycle, width = 2, side = "left", pad = 0))
+  left_join(max_horizon_date, by = c("date","cycle"))
 
 files_present <- purrr::map_int(1:nrow(forecast_start_times), function(i, forecast_start_times){
-  if(forecast_start_times$date[i] %in% s3_stage2_parquet$ls()){
-    if(forecast_start_times$dir[i] %in% s3_stage2_parquet$ls(forecast_start_times$date[i])){
-      exiting_files <- length(s3_stage2_parquet$ls(forecast_start_times$dir[i]))
+  if(forecast_start_times$cycle[i] %in% s3_stage2_parquet$ls()){
+    if(forecast_start_times$dir_parquet[i] %in% s3_stage2_parquet$ls(forecast_start_times$cycle[i])){
+      exiting_files <- length(s3_stage2_parquet$ls(forecast_start_times$dir_parquet[i]))
       if((forecast_start_times$horizon[i] < 840 | is.na(forecast_start_times$horizon[i])) & forecast_start_times$cycle[i] == 0){
         exiting_files <- NA
       }
       if(generate_netcdf){
         if(write_s3){
           if(forecast_start_times$date[i] %in% s3_stage2_ncdf$ls()){
-            if(forecast_start_times$dir[i] %in% s3_stage2_ncdf$ls(forecast_start_times$date[i])){
-          exiting_files <- min(c(exiting_files, length(s3_stage2_ncdf$ls(forecast_start_times$dir[i]))))
+            if(forecast_start_times$dir_netcdf[i] %in% s3_stage2_ncdf$ls(forecast_start_times$date[i])){
+          exiting_files <- min(c(exiting_files, length(s3_stage2_ncdf$ls(forecast_start_times$dir_netcdf[i]))))
 
             }else{
               exiting_files <- as.integer(0)
@@ -119,7 +119,7 @@ files_present <- purrr::map_int(1:nrow(forecast_start_times), function(i, foreca
             exiting_files <- as.integer(0)
           }
         }else{
-          exiting_files <- min(c(exiting_files, length(fs::dir_ls(file.path(s3_stage2_ncdf, forecast_start_times$dir[i])))))
+          exiting_files <- min(c(exiting_files, length(fs::dir_ls(file.path(s3_stage2_ncdf, forecast_start_times$dir_netcdf[i])))))
         }
       }
     }else{
@@ -142,12 +142,11 @@ if(nrow(forecast_start_times) > 0){
   purrr::walk(1:nrow(forecast_start_times),
               function(i, forecast_start_times, df, model_name, base_dir){
                 
-                s3_stage2_parquet$CreateDir(forecast_start_times$dir[i])
+                s3_stage2_parquet$CreateDir(forecast_start_times$dir_parquet[i])
                 message(paste0("Processing ", forecast_start_times$date[i]," ", forecast_start_times$cycle[i]))
                 d1 <- df |> 
                   dplyr::filter(start_date == as.character(forecast_start_times$date[i]),
                                 variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
-                                #site_id == forecast_start_times$site_id[i],
                                 cycle == as.integer(forecast_start_times$cycle[i])) |> 
                   select(-c("start_date", "cycle")) |>  
                   dplyr::collect() |> 
@@ -160,12 +159,12 @@ if(nrow(forecast_start_times) > 0){
                   standardize_names_cf() |> 
                   correct_solar_geom()
                 
-                fname <- paste0(parquet_file_basename,"_",forecast_start_times$date[i],"_", forecast_start_times$cycle[i],".parquet")
+                fname <- "part-0.parquet"
                 
                 if(write_s3){
-                  arrow::write_parquet(d1, sink = s3_stage2_parquet$path(file.path(forecast_start_times$dir[i],fname)))
+                  arrow::write_parquet(d1, sink = s3_stage2_parquet$path(file.path(forecast_start_times$dir_parquet[i],fname)))
                 }else{
-                  arrow::write_parquet(d1, sink = file.path(base_dir,"stage2", "parquet",forecast_start_times$dir[i],fname))
+                  arrow::write_parquet(d1, sink = file.path(base_dir,"stage2", "parquet",forecast_start_times$dir_parquet[i],fname))
                 }
                 
                 if(generate_netcdf){
@@ -175,7 +174,7 @@ if(nrow(forecast_start_times) > 0){
                     d1 |> 
                       dplyr::filter(site_id == site_list[j]) |> 
                       standardize_names_cf() |> 
-                      write_noaa_gefs_netcdf(dir = file.path(s3_stage2_ncdf_local, forecast_start_times$dir[i], site_list[j]), model_name = model_name)
+                      write_noaa_gefs_netcdf(dir = file.path(s3_stage2_ncdf_local, forecast_start_times$dir_netcdf[i], site_list[j]), model_name = model_name)
                     files <- fs::dir_ls(file.path(s3_stage2_ncdf_local, forecast_start_times$dir[i],site_list[j]))
                     
                     if(write_s3){
@@ -184,7 +183,7 @@ if(nrow(forecast_start_times) > 0){
                       
                       purrr::walk(files, function(file){
                         aws.s3::put_object( file = file, 
-                                            object = file.path("noaa/gefs-v12/stage2/ncdf", forecast_start_times$dir[i],site_list[j],basename(file)), 
+                                            object = file.path("noaa/gefs-v12/stage2/ncdf", forecast_start_times$dir_netcdf[i],site_list[j],basename(file)), 
                                             bucket = "neon4cast-drivers")
                         fs::file_delete(file)
                         
