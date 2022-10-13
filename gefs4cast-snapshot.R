@@ -23,11 +23,12 @@ s3 <- arrow::s3_bucket("neon4cast-drivers", endpoint_override = "data.ecoforecas
 # Adjust threads between 70 - 1120 depending on available RAM, CPU, + bandwidth
 threads <- 100
 
-gefs <- s3$path("noaa/gefs-v12/stage1")
+gefs <- s3$path("noaa/gefs-v12/stage1/0")
 have <- gefs$ls()
 have_days <- as.Date(basename(have))
 start <- max(have_days, na.rm=TRUE)
-have_cycles <- basename(gefs$ls(start))
+start <- as.Date("2022-10-10")
+#have_cycles <- basename(gefs$ls(start))
 
 aws <- arrow::s3_bucket("noaa-gefs-pds", anonymous = TRUE)
 avail <- aws$ls()

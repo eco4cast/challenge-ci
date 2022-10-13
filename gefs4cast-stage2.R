@@ -16,7 +16,7 @@ Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
 model_name <- "NOAAGEFS_1hr"
-generate_netcdf <- TRUE
+generate_netcdf <- FALSE
 write_s3 <- TRUE
 reprocess_all <- FALSE
 real_time_processing <- TRUE
@@ -96,7 +96,7 @@ forecast_start_times <- expand.grid(available_dates, cycles) |>
          dir_netcdf = file.path(date, cycle),
          cycle = as.integer(as.character(cycle)),
          date = date) |> 
-  select(date, cycle, dir) |> 
+  select(date, cycle, dir_parquet, dir_netcdf) |> 
   left_join(max_horizon_date, by = c("date","cycle"))
 
 files_present <- purrr::map_int(1:nrow(forecast_start_times), function(i, forecast_start_times){

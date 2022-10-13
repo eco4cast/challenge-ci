@@ -13,14 +13,13 @@ print(paste0("Start: ",Sys.time()))
 
 source(system.file("examples", "temporal_disaggregation.R", package = "gefs4cast"))
 
-base_dir <- path.expand("~/test_processing/noaa/gefs-v12/")
-generate_netcdf <- TRUE
+base_dir <- path.expand("~/test_processing/noaa/gefs-v12/stage1")
+generate_netcdf <- FALSE
 
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
 Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
 model_name <- "NOAAGEFS_1hr_stacked"
-generate_netcdf <- TRUE
 write_s3 <- TRUE
 
 message("reading stage 1")
@@ -28,9 +27,6 @@ message("reading stage 1")
 s3_stage1 <- arrow::s3_bucket("neon4cast-drivers/noaa/gefs-v12/stage1", 
                               endpoint_override =  "data.ecoforecast.org",
                               anonymous=TRUE)
-
-
-
 
 message("reading stage 3")
 
@@ -69,22 +65,23 @@ all_stage1 <- df |>
   filter(variable %in% c("PRES","TMP","RH","UGRD","VGRD","APCP","DSWRF","DLWRF"),
          horizon %in% c(0,3))
 message("writing stage 1")
-stage1_local <- SubTreeFileSystem$create(base_dir)
-arrow::write_dataset(dataset = all_stage1, path = s3_stage2_parquet$path())
+fs::dir_create(file.path(base_dir,"parquet"))
+stage1_local <- SubTreeFileSystem$create(file.path(base_dir,"parquet"))
+arrow::write_dataset(dataset = all_stage1, path = stage1_local, partitioning = "site_id")
 
 rm(all_stage1)
 
 gc()
 
-df <- arrow::open_dataset("stage3tmp.parquet")
+df <- arrow::open_dataset(stage1_local)
 
 purrr::walk(sites, function(site, base_dir, df){
   message(site)
   message(Sys.time())
-  fname <- "part-0.parquet"
   if(site %in% s3_stage3_parquet$ls()){
-    d <- arrow::read_parquet(s3_stage3_parquet$path(file.path(site, fname))) %>% 
-      mutate(start_date = lubridate::as_date(datetime))
+    d <- arrow::open_dataset(s3_stage3_parquet$path(site)) %>% 
+      mutate(start_date = lubridate::as_date(datetime)) |> 
+      collect()
     max_start_date <- max(d$start_date)
     d2 <- d %>% 
       filter(start_date != max_start_date) |> 
@@ -119,7 +116,7 @@ purrr::walk(sites, function(site, base_dir, df){
       dplyr::bind_rows(d2) |>
       mutate(reference_datetime = min(datetime)) |> 
       #dplyr::select(time, start_time, site_id, longitude, latitude, ensemble, variable, height, predicted) |> 
-      arrange(site_id, time, variable, parameter)
+      arrange(site_id, datetime, variable, parameter)
     
     #NEED TO UPDATE TO WRITE TO S3
     
@@ -142,7 +139,7 @@ purrr::walk(sites, function(site, base_dir, df){
     d1 |> 
       dplyr::mutate(family = "ensemble") |> 
       dplyr::select(datetime, site_id, longitude, latitude, family, parameter, variable, height, prediction) |> 
-      arrow::write_parquet(sink = s3_stage3_parquet$path(file.path(site, fname)))
+      arrow::write_dataset(path = s3_stage3_parquet$path(site), hive_style = FALSE)
   }
 },
 base_dir = base_dir,
@@ -156,8 +153,7 @@ df = df
 #  facet_wrap(~variable, scale = "free")
 
 #ggsave(p, filename = paste0("/home/rstudio/", sites[i],".pdf"), device = "pdf", height = 6, width = 12)
-
-unlink("stage3tmp.parquet")
+unlink(file.path(base_dir,"parquet"),recursive = TRUE)
 print(paste0("End: ",Sys.time()))
 
 
