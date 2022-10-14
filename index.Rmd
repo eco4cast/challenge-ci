@@ -126,7 +126,7 @@ target.plot <- reactive({
     ggplot(aes(x = datetime, y = mean, color = model_id)) +
     geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = model_id, fill = model_id), alpha = 0.3) +
     geom_line(aes(y = mean, color = model_id)) +
-    geom_point(aes(y = observed), color = "black") +
+    geom_point(aes(y = observation), color = "black") +
     facet_wrap(~site_id) +
     labs(x = "time", y = input$target)
 })
@@ -229,7 +229,7 @@ target.plot2 <- reactive({
     ggplot(aes(x = datetime, y = mean, color = reference_datetime)) +
     geom_ribbon(aes(ymin = quantile02.5, ymax = quantile97.5, color = reference_datetime, fill = reference_datetime), alpha = 0.3) +
     geom_line(aes(y = mean, color = reference_datetime)) +
-    geom_point(aes(y = observed), color = "black") +
+    geom_point(aes(y = observation), color = "black") +
     facet_wrap(~site_id) +
 
     labs(x = "time", y = input$target2)
