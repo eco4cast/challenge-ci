@@ -52,7 +52,7 @@ if(write_s3){
 df <- arrow::open_dataset(s3_stage1, partitioning = c("cycle", "start_date"))
 
 if(real_time_processing){
-  dates <- as.character(seq(Sys.Date() - lubridate::days(4), Sys.Date(), by = "1 day"))
+  dates <- as.character(seq(Sys.Date() - lubridate::days(6), Sys.Date(), by = "1 day"))
 }else{
   dates <- as.character(seq(lubridate::as_date("2020-11-03"), lubridate::as_date("2020-12-31"), by = "1 day"))
 }
