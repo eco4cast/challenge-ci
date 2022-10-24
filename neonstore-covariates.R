@@ -37,7 +37,7 @@ neonstore::neon_store(product = "DP4.00200.001")
 message("Ticks targets")
 
 neon_download(product = "DP1.10093.001", site = tick_sites)
-neonstore::neon_store(product =  "DP1.10093.001") 
+neonstore::neon_store(product =  "DP1.10093.001", delim=",") 
 
 
 ## free RAM associated with write.
