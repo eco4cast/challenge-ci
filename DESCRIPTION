@@ -6,5 +6,6 @@ Imports: neon4cast,
          imputeTS,
          hdf5r,
          neonstore,
-         neonUtilities
+         neonUtilities,
+         duckdb
 Remotes: eco4cast/neon4cast
