@@ -1,0 +1,11 @@
+Package: template
+Version: 0.1.0
+Imports: neon4cast, 
+         arrow,
+         tidyverse,
+         imputeTS,
+         hdf5r,
+         neonstore,
+         neonUtilities,
+         duckdb
+Remotes: eco4cast/neon4cast
