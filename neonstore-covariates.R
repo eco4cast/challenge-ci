@@ -37,7 +37,7 @@ neonstore::neon_store(product = "DP4.00200.001")
 message("Ticks targets")
 
 neon_download(product = "DP1.10093.001", site = tick_sites)
-neonstore::neon_store(product =  "DP1.10093.001") 
+neonstore::neon_store(product =  "DP1.10093.001", delim=",") 
 
 
 ## free RAM associated with write.
@@ -54,7 +54,7 @@ gc()
 
 neonstore::standardize_export_names(export_dir)
 #minio::install_mc()
-#minio::mc_alias_set()
+#minio::mc_alias_set(endpoint = "data.ecoforecast.org")
 minio::mc(glue::glue("mirror --overwrite {export_dir} minio/neon4cast-targets/neon"))
 
 
@@ -120,8 +120,8 @@ gc()
 neonstore::standardize_export_names(export_dir)
 
 ## remotes::install_github("cboettig/minio")
-#minio::install_mc()
-#minio::mc_alias_set()
+# minio::install_mc()
+# minio::mc_alias_set(endpoint = "data.ecoforecast.org")
 suppressMessages({
 minio::mc(glue::glue("mirror --overwrite {export_dir} minio/neon4cast-targets/neon"))
 })
