@@ -86,7 +86,8 @@ cronR::cron_add(command = cmd, frequency = 'daily', at = "10PM", id = 'scoring')
 cmd <- cronR::cron_rscript(rscript = file.path(home_dir, challange_ci_repo,"sync_scores.R"),
                            rscript_log = file.path(log_dir, "sync_scores.log"),
                            log_append = FALSE,
-                           workdir = file.path(home_dir, challange_ci_repo))
+                           workdir = file.path(home_dir, challange_ci_repo),
+                           trailing_arg = "curl -fsS -m 10 --retry 5 -o /dev/null https://hc-ping.com/2a0f669c-5488-4e8d-8969-a3b4c6e2983d")
 cronR::cron_add(command = cmd, frequency = "59 * * * *", id = 'sync-scores')
 
 
