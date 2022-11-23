@@ -2,6 +2,7 @@
 library(score4cast)
 library(arrow)
 
+source("R/ignore_sigpipes.R")
 readRenviron(path.expand("~/.Renviron"))
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 Sys.unsetenv("AWS_DEFAULT_REGION")
