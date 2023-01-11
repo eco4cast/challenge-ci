@@ -15,6 +15,7 @@ source(system.file("examples", "temporal_disaggregation.R", package = "gefs4cast
 
 base_dir <- path.expand("~/test_processing/noaa/gefs-v12/stage1")
 generate_netcdf <- FALSE
+rebuild <- TRUE
 
 Sys.unsetenv("AWS_DEFAULT_REGION")
 Sys.unsetenv("AWS_S3_ENDPOINT")
@@ -94,6 +95,12 @@ purrr::walk(sites, function(site, base_dir, df){
     d2 <- NULL
     do_run <- TRUE
     
+  }
+  
+  if(rebuild){
+    date_range <- as.character(seq(lubridate::as_date("2020-09-25"), Sys.Date(), by = "1 day"))
+    d2 <- NULL
+    do_run <- TRUE
   }
   
   if(do_run){

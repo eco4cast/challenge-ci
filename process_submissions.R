@@ -70,15 +70,23 @@ if(length(submissions) > 0){
           # pivot forecast before transferring
           if(!grepl("[.]xml", basename(submissions[i]))){
             fc <- read4cast::read_forecast(submissions[i])
+            if("richness" %in% names(fc)){
+            fc <- fc |> pivot_longer(cols = c("richness","abundance"), names_to = "variable", values_to = "predicted")
+            }
+            if("amblyomma_americanum" %in% names(fc)){
+              fc <- fc |> pivot_longer(cols = c("amblyomma_americanum"), names_to = "variable", values_to = "predicted")
+            }
+            
             if(theme == "terrestrial_30min"){
               reference_datetime_format <- "%Y-%m-%d %H:%M:%S"
             }else{
               reference_datetime_format <- "%Y-%m-%d"
             }
             fc <- score4cast::standardize_forecast(fc,basename(submissions[i]), reference_datetime_format = reference_datetime_format)
+            fc <- fc |> dplyr::mutate(date = lubridate::as_date(datetime))
             path <- s3$path(paste0("parquet/", theme))
             fc |> write_dataset(path, format = 'parquet', 
-                                partitioning=c("model_id", "reference_datetime", "site_id"))
+                                partitioning=c("model_id", "reference_datetime", "date"))
             #unlink(tmp) 
           }
           
