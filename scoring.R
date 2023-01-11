@@ -3,6 +3,7 @@ library(score4cast)
 library(arrow)
 ignore_sigpipe()
 
+source("R/ignore_sigpipes.R")
 readRenviron(path.expand("~/.Renviron"))
 Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 Sys.unsetenv("AWS_DEFAULT_REGION")
@@ -31,6 +32,6 @@ message(paste("terrestrial_daily done in", time[["real"]]))
 time <- score_theme("phenology", s3_forecasts, s3_targets, s3_scores, s3_prov)
 message(paste("phenology done in", time[["real"]]))
 
-#time <- score_theme("terrestrial_30min", s3_forecasts, s3_targets, s3_scores, s3_prov, max_horizon = 35L)
-#message(paste("terrestrial_30min done in", time[["real"]]))
+time <- score_theme("terrestrial_30min", s3_forecasts, s3_targets, s3_scores, s3_prov)
+message(paste("terrestrial_30min done in", time[["real"]]))
 

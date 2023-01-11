@@ -11,6 +11,9 @@ library(ggplot2)
 library(gefs4cast)
 print(paste0("Start: ",Sys.time()))
 
+score4cast::ignore_sigpipe()
+
+
 source(system.file("examples", "temporal_disaggregation.R", package = "gefs4cast"))
 
 base_dir <- path.expand("~/test_processing/noaa/gefs-v12/stage1")

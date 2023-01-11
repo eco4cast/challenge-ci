@@ -1,10 +1,10 @@
 readRenviron("~/.Renviron") # compatible with littler
-source(".Rprofile")
-renv::restore()
+#source(".Rprofile")
 
-## Process the raw data into the target variable produc
+## Process the raw data into the target variable product
 library(neonstore)
 library(tidyverse)
+score4cast::ignore_sigpipe()
 
 
 export_dir <- path.expand("~/neon4cast-neonstore")
