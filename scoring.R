@@ -1,6 +1,7 @@
 # remotes::install_deps()
 library(score4cast)
 library(arrow)
+ignore_sigpipe()
 
 source("R/ignore_sigpipes.R")
 readRenviron(path.expand("~/.Renviron"))

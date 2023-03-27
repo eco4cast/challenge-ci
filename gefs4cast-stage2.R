@@ -18,7 +18,7 @@ Sys.setenv(AWS_EC2_METADATA_DISABLED="TRUE")
 model_name <- "NOAAGEFS_1hr"
 generate_netcdf <- FALSE
 write_s3 <- TRUE
-reprocess_all <- FALSE
+reprocess_all <- TRUE
 real_time_processing <- TRUE
 parquet_file_basename <- "neon"
 base_dir <- "/home/rstudio/test_processing/noaa/gefs-v12"

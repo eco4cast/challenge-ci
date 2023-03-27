@@ -15,7 +15,7 @@ library(arrow)
 library(neon4cast)
 
 #THIS FILE PATH NEEDS TO BE CHANGED - currently set to my local files
-#Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
+Sys.setenv("AWS_EC2_METADATA_DISABLED"="TRUE")
 Sys.unsetenv("AWS_ACCESS_KEY_ID")
 Sys.unsetenv("AWS_SECRET_ACCESS_KEY")
 Sys.unsetenv("AWS_DEFAULT_REGION")
@@ -29,7 +29,7 @@ challenge_config <- yaml::read_yaml("challenge_config.yml")
 #s3 <- "/efi_neon_challenge/local/scores/parquet/"
 #ds <- arrow::open_dataset(s3) %>% collect()
 theme_choices <- names(challenge_config$themes)
-base_date <- "2021-02-01"
+base_date <- as.character(Sys.Date() - lubridate::days(60))
 
 ```
 
@@ -42,6 +42,7 @@ Pick Forecast Category {.sidebar}
 ```{r}
 renderUI({
   selectInput("forecast", "Select forecast theme:", 
+              #choices = theme_choices, selected = "aquatics")
               choices = theme_choices, selected = theme_choices[1])
 })
 
@@ -121,6 +122,8 @@ Forecast Plot
 
 ```{r}
 target.plot <- reactive({
+  
+  print(team_date_forecast())
   
   team_date_forecast() %>% 
     ggplot(aes(x = datetime, y = mean, color = model_id)) +
