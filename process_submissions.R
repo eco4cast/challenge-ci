@@ -28,7 +28,8 @@ aws.s3::s3sync(local_dir, bucket= "neon4cast-submissions",  direction= "download
 #sink()
 
 submissions <- fs::dir_ls(local_dir, recurse = TRUE, type = "file")
-submissions_bucket <- list.files(local_dir, recursive = TRUE)
+# submissions_bucket <- list.files(local_dir, recursive = TRUE)
+submissions_bucket <- basename(submissions)
 
 themes <- names(challenge_config$themes)
 
