@@ -1,12 +1,9 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   schedule:
     - cron: '0 8 * * *'
   workflow_dispatch:
 
-  
-name: docker
+name: s3_inventory
 
 jobs:
   docker:
@@ -19,7 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          digest::sha1_digest(Sys.getenv("AWS_ACCESS_KEY_ID"))
           remotes::install_github("eco4cast/score4cast")
-          # score4cast::efi_update_inventory()
+          score4cast::efi_update_inventory()
         shell: Rscript {0}
