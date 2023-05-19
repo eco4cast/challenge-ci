@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
+          digest::sha1_digest(Sys.getenv("AWS_ACCESS_KEY_ID"))
           remotes::install_github("eco4cast/score4cast")
-          score4cast::efi_update_inventory()
+          # score4cast::efi_update_inventory()
         shell: Rscript {0}
