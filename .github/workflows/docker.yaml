@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
+          source("R/ignore_sigpipe.R")
+          ignore_sigpipes()
           source('R/update_s3_inventory.R')
           efi_update_inventory()
         shell: Rscript {0}
