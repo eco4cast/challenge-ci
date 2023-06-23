@@ -16,6 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
-          remotes::install_github("eco4cast/score4cast", upgrade="never")
-          score4cast::efi_update_inventory()
+          source('R/update_s3_inventory.R')
+          efi_update_inventory()
         shell: Rscript {0}
