@@ -22,3 +22,5 @@ jobs:
           print("updating inventory")
           ignore_sigpipe(); efi_update_inventory()
         shell: Rscript {0}
+        name: Update Inventory
+
