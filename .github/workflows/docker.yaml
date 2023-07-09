@@ -19,5 +19,6 @@ jobs:
           install.packages("decor")
           source("R/ignore_sigpipes.R")
           source('R/update_s3_inventory.R')
-          efi_update_inventory()
+          print("updating inventory")
+          ignore_sigpipe(); efi_update_inventory()
         shell: Rscript {0}
