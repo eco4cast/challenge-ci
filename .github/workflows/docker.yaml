@@ -17,6 +17,9 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           install.packages("decor")
+        shell: Rscript {0}
+        name: install deps
+      - run: |
           source("R/ignore_sigpipes.R")
           source('R/update_s3_inventory.R')
           print("updating inventory")
