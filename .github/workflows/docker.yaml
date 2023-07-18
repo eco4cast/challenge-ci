@@ -17,13 +17,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           install.packages("decor")
+          remotes::install_github("eco4cast/score4cast")
         shell: Rscript {0}
         name: install deps
       - run: |
-          source("R/ignore_sigpipes.R")
-          source('R/update_s3_inventory.R')
-          print("updating inventory")
-          ignore_sigpipe(); efi_update_inventory()
-        shell: Rscript {0}
+          Rscript -e "source('R/update_s3_inventory.R'); efi_update_inventory()" || true
         name: Update Inventory
 
