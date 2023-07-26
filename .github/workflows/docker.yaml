@@ -7,20 +7,18 @@ name: s3_inventory
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    container: rocker/geospatial
     steps:
       - uses: actions/checkout@v3
       - run: |
-          install.packages("decor")
           remotes::install_github("eco4cast/score4cast")
         shell: Rscript {0}
         name: install deps
       - run: |
-          Rscript -e "source('R/update_s3_inventory.R'); efi_update_inventory()" || true
+          Rscript -e "source('R/update_s3_inventory.R'); ignore_sigpipe(); efi_update_inventory()"
         name: Update Inventory
 
