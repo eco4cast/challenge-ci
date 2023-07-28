@@ -20,6 +20,6 @@ jobs:
         shell: Rscript {0}
         name: install deps
       - run: |
-          Rscript -e "source("R/ignore_sigpipes.R"); source('R/update_s3_inventory.R'); ignore_sigpipe(); efi_update_inventory()"
+          Rscript -e "source('R/ignore_sigpipes.R'); source('R/update_s3_inventory.R'); ignore_sigpipe(); efi_update_inventory()"
         name: Update Inventory
 
