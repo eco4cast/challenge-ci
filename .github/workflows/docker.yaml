@@ -1,6 +1,8 @@
+## For some reason the self-hosted runner refuses to pick up jobs from a public repository
+
 on:
-  schedule:
-    - cron: '0 8 * * *'
+#  schedule:
+#    - cron: '0 8 * * *'
   workflow_dispatch:
 
 name: s3_inventory
