@@ -7,9 +7,9 @@ name: s3_inventory
 
 jobs:
   docker:
-    runs-on: 
-      group: Public-Infrastructure
-      labels: self-hosted
+    runs-on: [self-hosted]
+#      group: Public-Infrastructure
+#      labels: self-hosted
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
