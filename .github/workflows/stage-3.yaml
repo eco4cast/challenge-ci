@@ -10,6 +10,7 @@ jobs:
     runs-on: [self-hosted]
 #      group: Public-Infrastructure
 #      labels: self-hosted
+    timeout-minutes: 1440
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
